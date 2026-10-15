@@ -17,9 +17,19 @@ jobs:
     steps:
       - name: Merge the pull request
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # AUTOMERGE_TOKEN is the repo owner's token, so merges are
+          # attributed to them; falls back to the Actions bot token.
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN || secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
+          # Safety guard: never auto-merge a PR that changes workflows or
+          # repo automation — those could steal the merge token. A human
+          # must review and merge such PRs manually.
+          if gh pr view "$PR_URL" --json files --jq '.files[].path' | grep -q '^\.github/'; then
+            gh pr comment "$PR_URL" --body "🤖 Auto-merge bot: this PR changes files under \`.github/\`, so it will not be merged automatically. A maintainer will review it manually."
+            echo "Skipping: PR touches .github/"
+            exit 0
+          fi
           # Retry a few times: GitHub may still be computing mergeability
           # right after the PR event fires.
           for attempt in 1 2 3 4 5; do
