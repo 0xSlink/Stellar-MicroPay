@@ -37,7 +37,6 @@ const swaggerSpec = require("./swagger");
 const { startTurretsServer } = require("./turretsServer");
 const logger = require("./logger");
 const { sanitizeRequest } = require("./middleware/sanitization");
-const { csrfProtection } = require("./middleware/csrf");
 
 const app = express();
 const PORT = process.env.PORT || 4000;

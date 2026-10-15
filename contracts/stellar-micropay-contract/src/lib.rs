@@ -1978,6 +1978,88 @@ mod tests {
         assert!(res.is_err());
     }
 
+    #[test]
+    fn test_upgrade_preserves_stream_and_tip_state() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        const STUB_WASM: &[u8] = include_bytes!("../test_stub.wasm");
+        let contract_id = env.register_contract_wasm(None, STUB_WASM);
+        let client = MicroPayContractClient::new(&env, &contract_id);
+
+        let admin = Address::generate(&env);
+        client.initialize(&admin);
+
+        let token_admin = Address::generate(&env);
+        let token_address = env
+            .register_stellar_asset_contract_v2(token_admin.clone())
+            .address();
+        let token_client = token::StellarAssetClient::new(&env, &token_address);
+
+        let payer1 = Address::generate(&env);
+        let payer2 = Address::generate(&env);
+        let recipient1 = Address::generate(&env);
+        let recipient2 = Address::generate(&env);
+
+        token_client.mint(&payer1, &100_000);
+        token_client.mint(&payer2, &100_000);
+
+        // 1. Create 2 streams
+        let stream_id_0 = client.open_stream(&payer1, &recipient1, &10, &1000);
+        let stream_id_1 = client.open_stream(&payer2, &recipient2, &20, &2000);
+
+        // 2. Create 3 tips
+        client.send_tip(&token_address, &payer1, &recipient1, &150);
+        client.send_tip(&token_address, &payer2, &recipient1, &250);
+        client.send_tip(&token_address, &payer1, &recipient2, &350);
+
+        // Query before state
+        let stream_0_before = client.get_stream(&stream_id_0);
+        let stream_1_before = client.get_stream(&stream_id_1);
+        let tip_total_1_before = client.get_tip_total(&recipient1);
+        let tip_total_2_before = client.get_tip_total(&recipient2);
+
+        std::println!("--- BEFORE UPGRADE STATE ---");
+        std::println!("Stream 0: {:?}", stream_0_before);
+        std::println!("Stream 1: {:?}", stream_1_before);
+        std::println!("Tip Total Recipient 1: {}", tip_total_1_before);
+        std::println!("Tip Total Recipient 2: {}", tip_total_2_before);
+
+        // 3. Upgrade to mock new WASM hash using test stub WASM
+        let new_wasm_hash = env.deployer().upload_contract_wasm(STUB_WASM);
+        client.upgrade(&new_wasm_hash);
+
+        // 4. Query after state
+        let stream_0_after = client.get_stream(&stream_id_0);
+        let stream_1_after = client.get_stream(&stream_id_1);
+        let tip_total_1_after = client.get_tip_total(&recipient1);
+        let tip_total_2_after = client.get_tip_total(&recipient2);
+
+        std::println!("--- AFTER UPGRADE STATE ---");
+        std::println!("Stream 0: {:?}", stream_0_after);
+        std::println!("Stream 1: {:?}", stream_1_after);
+        std::println!("Tip Total Recipient 1: {}", tip_total_1_after);
+        std::println!("Tip Total Recipient 2: {}", tip_total_2_after);
+
+        // 5. Verify state is preserved
+        assert_eq!(stream_0_before.payer, stream_0_after.payer);
+        assert_eq!(stream_0_before.recipient, stream_0_after.recipient);
+        assert_eq!(stream_0_before.rate_per_ledger, stream_0_after.rate_per_ledger);
+        assert_eq!(stream_0_before.deposited, stream_0_after.deposited);
+        assert_eq!(stream_0_before.claimed, stream_0_after.claimed);
+
+        assert_eq!(stream_1_before.payer, stream_1_after.payer);
+        assert_eq!(stream_1_before.recipient, stream_1_after.recipient);
+        assert_eq!(stream_1_before.rate_per_ledger, stream_1_after.rate_per_ledger);
+        assert_eq!(stream_1_before.deposited, stream_1_after.deposited);
+        assert_eq!(stream_1_before.claimed, stream_1_after.claimed);
+
+        assert_eq!(tip_total_1_before, tip_total_1_after);
+        assert_eq!(tip_total_2_before, tip_total_2_after);
+        assert_eq!(tip_total_1_after, 400);
+        assert_eq!(tip_total_2_after, 350);
+    }
+
     // ─── Streaming tests ───────────────────────────────────────────────────
 
     #[test]

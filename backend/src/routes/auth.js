@@ -18,7 +18,6 @@ const {
   authLegacyChallengeLimiter,
   authVerifyLimiter,
 } = require("../middleware/rateLimit");
-const { setCsrfCookie } = require("../middleware/csrf");
 
 const router = express.Router();
 
@@ -62,7 +61,7 @@ function issueChallenge(req, res) {
 
 // Keep the original endpoint available while clients migrate to /challenge.
 router.get("/challenge", authChallengeLimiter, issueChallenge);
-router.get("/", authLegacyChallengeLimiter, issueChallenge);
+router.get("/", authChallengeLimiter, issueChallenge);
 
 // POST /api/auth/verify — verify signed challenge and issue JWT
 function verifyChallenge(req, res) {
