@@ -50,17 +50,17 @@ function SparkleIcon({ className }: { className?: string }) {
   );
 }
 
-function CloseIcon() {
+function CloseIcon({ className }: { className?: string } = {}) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   );
 }
 
-function HamburgerIcon() {
+function HamburgerIcon({ className }: { className?: string } = {}) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
     </svg>
   );
@@ -254,7 +254,7 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
                     : "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200"
                 )}
               >
-                {t(link.labelKey)}
+                {link.label}
               </Link>
             ))}
           </div>
@@ -403,10 +403,11 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
         </div>
       )}
     </nav>
-  );
-}
+);
+  }
 
-function StarIcon({ className }: { className?: string }) {
+
+  function StarIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
