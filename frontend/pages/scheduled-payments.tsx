@@ -161,10 +161,18 @@ export default function ScheduledPaymentsPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="mb-8">
-        <h1 className="mb-2 font-display text-3xl font-bold text-white">Scheduled Payments</h1>
-        <p className="text-slate-400">
-          Create recurring payments and manage active schedules (daily, weekly, or monthly).
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="mb-2 font-display text-3xl font-bold text-white">Scheduled Payments</h1>
+            <p className="text-slate-400">
+              Create recurring payments and manage active schedules (daily, weekly, or monthly).
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
+            <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
+            <span>Durable Persistence & Recovery Active</span>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
