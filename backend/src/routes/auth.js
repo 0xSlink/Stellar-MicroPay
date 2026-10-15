@@ -15,7 +15,6 @@ const { JWT_SECRET } = require("../middleware/auth");
 const { setCsrfCookie } = require("../middleware/csrf");
 const {
   authChallengeLimiter,
-  authLegacyChallengeLimiter,
   authVerifyLimiter,
 } = require("../middleware/rateLimit");
 
