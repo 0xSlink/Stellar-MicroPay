@@ -21,7 +21,26 @@ jobs:
           # attributed to them; falls back to the Actions bot token.
           GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN || secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          EVENT_ACTION: ${{ github.event.action }}
         run: |
+          # Only auto-merge Stellar Wave PRs: the PR must close an issue
+          # labeled "Stellar Wave" (via "Fixes #123" in its description),
+          # or carry the "Stellar Wave" label itself.
+          PR_LABELS=$(gh pr view "$PR_URL" --json labels --jq '.labels[].name')
+          LINKED_LABELS=$(gh api graphql \
+            -f query='query($owner:String!,$repo:String!,$pr:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$pr){closingIssuesReferences(first:20){nodes{labels(first:50){nodes{name}}}}}}}' \
+            -f owner="$OWNER" -f repo="$REPO" -F pr="$PR_NUMBER" \
+            --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[].labels.nodes[].name')
+          if ! printf '%s\n%s\n' "$PR_LABELS" "$LINKED_LABELS" | grep -qx "Stellar Wave"; then
+            if [ "$EVENT_ACTION" = "opened" ]; then
+              gh pr comment "$PR_URL" --body "🤖 Auto-merge bot: this PR is not linked to a **Stellar Wave** issue, so it will not be merged automatically. To qualify, add \`Fixes #<issue-number>\` to the PR description, pointing at one of this repo's issues labeled **Stellar Wave**. A maintainer can still review and merge it manually."
+            fi
+            echo "Skipping: not a Stellar Wave PR"
+            exit 0
+          fi
           # Safety guard: never auto-merge a PR that changes workflows or
           # repo automation — those could steal the merge token. A human
           # must review and merge such PRs manually.
