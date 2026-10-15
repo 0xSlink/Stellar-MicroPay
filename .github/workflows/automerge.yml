@@ -25,6 +25,7 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
           EVENT_ACTION: ${{ github.event.action }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           # Only auto-merge Stellar Wave PRs: the PR must close an issue
           # labeled "Stellar Wave" (via "Fixes #123" in its description),
@@ -36,7 +37,7 @@ jobs:
             --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[].labels.nodes[].name')
           if ! printf '%s\n%s\n' "$PR_LABELS" "$LINKED_LABELS" | grep -qx "Stellar Wave"; then
             if [ "$EVENT_ACTION" = "opened" ]; then
-              gh pr comment "$PR_URL" --body "🤖 Auto-merge bot: this PR is not linked to a **Stellar Wave** issue, so it will not be merged automatically. To qualify, add \`Fixes #<issue-number>\` to the PR description, pointing at one of this repo's issues labeled **Stellar Wave**. A maintainer can still review and merge it manually."
+              gh pr comment "$PR_URL" --body "👋 Hey @$AUTHOR, thanks for the contribution! 🙌 To get this PR auto-merged, link it to a **Stellar Wave** issue by adding \`Fixes #<issue-number>\` to the PR description. A maintainer can also review and merge it manually."
             fi
             echo "Skipping: not a Stellar Wave PR"
             exit 0
@@ -45,7 +46,7 @@ jobs:
           # repo automation — those could steal the merge token. A human
           # must review and merge such PRs manually.
           if gh pr view "$PR_URL" --json files --jq '.files[].path' | grep -q '^\.github/'; then
-            gh pr comment "$PR_URL" --body "🤖 Auto-merge bot: this PR changes files under \`.github/\`, so it will not be merged automatically. A maintainer will review it manually."
+            gh pr comment "$PR_URL" --body "👋 Hey @$AUTHOR, thanks for the PR! 🙏 Changes under \`.github/\` need a manual review by a maintainer before merging — hang tight!"
             echo "Skipping: PR touches .github/"
             exit 0
           fi
@@ -53,11 +54,12 @@ jobs:
           # right after the PR event fires.
           for attempt in 1 2 3 4 5; do
             if gh pr merge --merge "$PR_URL"; then
+              gh pr comment "$PR_URL" --body "🎉 Well done @$AUTHOR — great implementation! Your PR has been merged. Thank you for contributing to **Stellar Wave**! 🚀"
               echo "Merged $PR_URL"
               exit 0
             fi
             echo "Attempt $attempt failed; retrying in 20s..."
             sleep 20
           done
-          gh pr comment "$PR_URL" --body "🤖 Auto-merge bot: could not merge this PR automatically (most likely a merge conflict with main). Please update the branch and resolve conflicts."
+          gh pr comment "$PR_URL" --body "👋 Hey @$AUTHOR, nice work so far! 💪 There's just a merge conflict with \`main\` — please update your branch and resolve it, and this will be merged right away."
           exit 1
