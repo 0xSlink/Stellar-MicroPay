@@ -1648,6 +1648,22 @@ export async function getContractTipTotal(recipient: string): Promise<string> {
 
 // ─── NFT Receipts ───────────────────────────────────────────────────────────
 
+/** Soroban `Symbol` values allow at most 32 characters from `[a-zA-Z0-9_]`. */
+export const RECEIPT_MEMO_SYMBOL_MAX_LENGTH = 32;
+
+/**
+ * Convert a free-form payment memo into a valid Soroban `Symbol` for
+ * `mint_receipt`. Disallowed characters (spaces, punctuation, unicode) become
+ * underscores so a memo like "rent – May" doesn't make the host reject the
+ * invocation.
+ */
+export function toReceiptMemoSymbol(memo?: string): string {
+  return (memo ?? "")
+    .trim()
+    .replace(/[^a-zA-Z0-9_]/g, "_")
+    .slice(0, RECEIPT_MEMO_SYMBOL_MAX_LENGTH);
+}
+
 /**
  * Build a Soroban contract invocation to mint a payment receipt (NFT).
  * Simulates/preflights the transaction so it's ready for signing.
@@ -1671,8 +1687,7 @@ export async function buildReceiptMintTransaction({
   const contract = new Contract(CONTRACT_ID);
 
   const stroops = BigInt(Math.round(parseFloat(amount) * 10_000_000));
-  const memoStr = (memo ?? "").slice(0, 28);
-  const memoScVal = nativeToScVal(memoStr, { type: "symbol" });
+  const memoScVal = nativeToScVal(toReceiptMemoSymbol(memo), { type: "symbol" });
 
   const tx = new TransactionBuilder(sourceAccount, {
     fee: "100",
@@ -1725,6 +1740,73 @@ export async function getReceiptCount(payer: string): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+/** A receipt as stored by the contract's `get_receipt`. */
+export interface OnChainReceipt {
+  /** Zero-based index of this receipt in the payer's receipt list. */
+  index: number;
+  from: string;
+  to: string;
+  /** Amount in stroops, as a decimal string. */
+  amountStroops: string;
+  /** Ledger close time (unix seconds) when the receipt was minted. */
+  timestamp: number;
+  memo: string;
+  ledger: number;
+}
+
+/**
+ * Read a single receipt for `payer` at `index` via simulation.
+ * Throws with the contract's message (e.g. "Receipt not found") on failure so
+ * callers can surface it — unlike {@link getReceiptCount}, which falls back to 0.
+ */
+export async function getReceipt(payer: string, index: number): Promise<OnChainReceipt> {
+  if (!CONTRACT_ID) {
+    throw new Error("Contract ID is not configured.");
+  }
+
+  const contract = new Contract(CONTRACT_ID);
+  const tx = new TransactionBuilder(
+    new Account(payer, "0"),
+    { fee: STELLAR_BASE_FEE_STROOPS_STRING, networkPassphrase: getNetworkPassphrase() }
+  )
+    .addOperation(
+      contract.call(
+        "get_receipt",
+        nativeToScVal(payer, { type: "address" }),
+        nativeToScVal(index, { type: "u32" })
+      )
+    )
+    .setTimeout(30)
+    .build();
+
+  const sim = await sorobanServer.simulateTransaction(tx);
+  if (rpc.Api.isSimulationError(sim)) {
+    throw new Error(sim.error);
+  }
+  if (!rpc.Api.isSimulationSuccess(sim) || !sim.result) {
+    throw new Error("Receipt lookup returned no result.");
+  }
+
+  const raw = scValToNative(sim.result.retval) as {
+    from: string;
+    to: string;
+    amount: bigint | number | string;
+    timestamp: bigint | number;
+    memo: string;
+    ledger: number;
+  };
+
+  return {
+    index,
+    from: String(raw.from),
+    to: String(raw.to),
+    amountStroops: raw.amount.toString(),
+    timestamp: Number(raw.timestamp),
+    memo: String(raw.memo ?? ""),
+    ledger: Number(raw.ledger),
+  };
 }
 
 export async function getRecentPaymentsForSparkline(

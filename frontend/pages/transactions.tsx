@@ -14,6 +14,14 @@ import TransactionList, {
 import { fetchAllPayments, getNetwork, shortenAddress, PaymentRecord } from "@/lib/stellar";
 import { exportToCSV, exportToJSON, formatAsset, formatDate } from "@/utils/format";
 import { useWallet } from "@/lib/useWallet";
+import ReceiptsList, { receiptDate } from "@/components/ReceiptsList";
+import {
+  describeReceiptError,
+  loadMintedReceiptHashes,
+  mintReceiptForPayment,
+  stroopsToXlm,
+  OnChainReceipt,
+} from "@/lib/receipts";
 import { loadAllPaymentNotes } from "@/lib/usePaymentNotes";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -27,6 +35,15 @@ const DIRECTION_FILTERS: Array<{
   { label: "Sent", value: "sent" },
   { label: "Received", value: "received" },
 ];
+
+type TransactionsView = "history" | "receipts";
+
+interface PrintableReceipt {
+  title: string;
+  date: string;
+  subtitle: string;
+  rows: Array<{ label: string; value: string; mono?: boolean }>;
+}
 
 function isDirectionFilter(value: unknown): value is TransactionDirectionFilter {
   return value === "all" || value === "sent" || value === "received";
@@ -43,7 +60,13 @@ export default function Transactions() {
   const [minimumAmount, setMinimumAmount] = useState("");
   const [memoSearch, setMemoSearch] = useState("");
   const [filtersReady, setFiltersReady] = useState(false);
-  const [receiptPayment, setReceiptPayment] = useState<PaymentRecord | null>(null);
+  const [printableReceipt, setPrintableReceipt] = useState<PrintableReceipt | null>(null);
+  const [view, setView] = useState<TransactionsView>("history");
+  const [mintingReceiptHash, setMintingReceiptHash] = useState<string | null>(null);
+  const [mintedReceiptHashes, setMintedReceiptHashes] = useState<Record<string, number>>({});
+  const [mintError, setMintError] = useState<string | null>(null);
+  const [mintSuccess, setMintSuccess] = useState<string | null>(null);
+  const [receiptsRefreshKey, setReceiptsRefreshKey] = useState(0);
 
   const transactionFilters = useMemo<TransactionFilters>(
     () => ({
@@ -144,12 +167,73 @@ export default function Transactions() {
     }
   };
 
-  const handlePrintReceipt = useCallback((payment: PaymentRecord) => {
-    setReceiptPayment(payment);
+  useEffect(() => {
+    setMintedReceiptHashes(loadMintedReceiptHashes());
   }, []);
 
+  const handlePrintReceipt = useCallback(
+    (payment: PaymentRecord) => {
+      setPrintableReceipt({
+        title: "Payment Receipt",
+        date: formatDate(payment.createdAt),
+        subtitle: payment.type === "sent" ? "Sent" : "Received",
+        rows: [
+          { label: "Date", value: formatDate(payment.createdAt) },
+          { label: "Amount", value: formatAsset(payment.amount, payment.asset) },
+          { label: "Sender", value: payment.from, mono: true },
+          { label: "Recipient", value: payment.to, mono: true },
+          { label: "Memo", value: payment.memo || "-" },
+          { label: "Transaction Hash", value: payment.transactionHash, mono: true },
+          { label: "Network", value: networkLabel },
+        ],
+      });
+    },
+    [networkLabel]
+  );
+
+  const handlePrintOnChainReceipt = useCallback(
+    (receipt: OnChainReceipt) => {
+      setPrintableReceipt({
+        title: `On-chain Receipt #${receipt.index}`,
+        date: receiptDate(receipt),
+        subtitle: "Minted",
+        rows: [
+          { label: "Receipt", value: `#${receipt.index}` },
+          { label: "Minted", value: receiptDate(receipt) },
+          { label: "Amount", value: `${stroopsToXlm(receipt.amountStroops)} XLM` },
+          { label: "Payer", value: receipt.from, mono: true },
+          { label: "Payee", value: receipt.to, mono: true },
+          { label: "Memo", value: receipt.memo || "-" },
+          { label: "Ledger", value: String(receipt.ledger) },
+          { label: "Network", value: networkLabel },
+        ],
+      });
+    },
+    [networkLabel]
+  );
+
+  const handleMintReceipt = useCallback(
+    async (payment: PaymentRecord) => {
+      if (!publicKey) return;
+      setMintingReceiptHash(payment.transactionHash);
+      setMintError(null);
+      setMintSuccess(null);
+      try {
+        const { index } = await mintReceiptForPayment(payment, publicKey);
+        setMintedReceiptHashes((prev) => ({ ...prev, [payment.transactionHash]: index }));
+        setMintSuccess(`Receipt #${index} minted on-chain.`);
+        setReceiptsRefreshKey((n) => n + 1);
+      } catch (err) {
+        setMintError(describeReceiptError(err));
+      } finally {
+        setMintingReceiptHash(null);
+      }
+    },
+    [publicKey]
+  );
+
   useEffect(() => {
-    if (!receiptPayment) return;
+    if (!printableReceipt) return;
 
     let cancelled = false;
     let firstFrame = 0;
@@ -157,7 +241,7 @@ export default function Transactions() {
 
     const cleanup = () => {
       document.body.classList.remove("receipt-printing");
-      setReceiptPayment(null);
+      setPrintableReceipt(null);
     };
 
     const handleAfterPrint = () => {
@@ -183,7 +267,7 @@ export default function Transactions() {
       cancelAnimationFrame(secondFrame);
       document.body.classList.remove("receipt-printing");
     };
-  }, [receiptPayment]);
+  }, [printableReceipt]);
 
   if (!publicKey) {
     return (
@@ -329,6 +413,71 @@ export default function Transactions() {
         </a>
       </div>
 
+      {/* View switcher */}
+      <div
+        role="tablist"
+        aria-label="Transactions view"
+        className="mb-5 inline-flex rounded-xl border border-white/10 bg-cosmos-900/70 p-1"
+      >
+        {([
+          { label: "History", value: "history" },
+          { label: "Receipts", value: "receipts" },
+        ] as Array<{ label: string; value: TransactionsView }>).map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="tab"
+            aria-selected={view === option.value}
+            onClick={() => setView(option.value)}
+            className={[
+              "min-w-24 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stellar-400/60 cursor-pointer",
+              view === option.value
+                ? "bg-stellar-500/20 text-stellar-200"
+                : "text-slate-500 hover:text-slate-200",
+            ].join(" ")}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {mintError && (
+        <div role="alert" className="mb-4 p-3 rounded-xl border border-red-500/20 bg-red-500/5 flex items-start justify-between gap-3">
+          <p className="text-sm text-red-300">{mintError}</p>
+          <button
+            type="button"
+            onClick={() => setMintError(null)}
+            className="text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
+            aria-label="Dismiss receipt error"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {mintSuccess && (
+        <div role="status" className="mb-4 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex items-center justify-between gap-3">
+          <p className="text-sm text-emerald-300">{mintSuccess}</p>
+          <button
+            type="button"
+            onClick={() => setView("receipts")}
+            className="text-xs font-medium text-stellar-400 hover:text-stellar-300 cursor-pointer"
+          >
+            View receipts →
+          </button>
+        </div>
+      )}
+
+      {view === "receipts" ? (
+        <div className="select-text">
+          <ReceiptsList
+            publicKey={publicKey}
+            refreshKey={receiptsRefreshKey}
+            onPrintReceipt={handlePrintOnChainReceipt}
+          />
+        </div>
+      ) : (
+      <>
       {/* Filters */}
       <div className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] p-4 select-text">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -433,46 +582,40 @@ export default function Transactions() {
           filters={transactionFilters}
           onPaymentsChange={handlePaymentsChange}
           onPrintReceipt={handlePrintReceipt}
+          onMintReceipt={(payment) => void handleMintReceipt(payment)}
+          mintingReceiptHash={mintingReceiptHash}
+          mintedReceiptHashes={mintedReceiptHashes}
         />
       </div>
+      </>
+      )}
 
       <div className="receipt-print-root" aria-hidden="true">
-        {receiptPayment && (
-          <div className="receipt-sheet card">
+        {printableReceipt && (
+          <div className="receipt-sheet card" data-testid="receipt-print-sheet">
             <div className="flex items-start justify-between gap-6 border-b border-slate-200 pb-5 mb-6">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-500 mb-2">
                   Stellar MicroPay
                 </p>
                 <h2 className="text-2xl font-semibold text-slate-900">
-                  Payment Receipt
+                  {printableReceipt.title}
                 </h2>
-                <p className="text-sm text-slate-500 mt-1">
-                  {formatDate(receiptPayment.createdAt)}
-                </p>
+                <p className="text-sm text-slate-500 mt-1">{printableReceipt.date}</p>
               </div>
               <div className="text-right">
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                   Network
                 </p>
                 <p className="text-lg font-semibold text-slate-900">{networkLabel}</p>
-                <p className="text-sm text-slate-500 capitalize">
-                  {receiptPayment.type === "sent" ? "Sent" : "Received"}
-                </p>
+                <p className="text-sm text-slate-500 capitalize">{printableReceipt.subtitle}</p>
               </div>
             </div>
 
             <dl className="grid gap-4 text-sm text-slate-700">
-              <ReceiptRow label="Date" value={formatDate(receiptPayment.createdAt)} />
-              <ReceiptRow
-                label="Amount"
-                value={formatAsset(receiptPayment.amount, receiptPayment.asset)}
-              />
-              <ReceiptRow label="Sender" value={receiptPayment.from} mono />
-              <ReceiptRow label="Recipient" value={receiptPayment.to} mono />
-              <ReceiptRow label="Memo" value={receiptPayment.memo || "-"} />
-              <ReceiptRow label="Transaction Hash" value={receiptPayment.transactionHash} mono />
-              <ReceiptRow label="Network" value={networkLabel} />
+              {printableReceipt.rows.map((row) => (
+                <ReceiptRow key={row.label} label={row.label} value={row.value} mono={row.mono} />
+              ))}
             </dl>
 
             <div className="mt-8 border-t border-slate-200 pt-4 text-xs text-slate-500">
