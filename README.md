@@ -120,6 +120,9 @@ pub struct Stream {
 
 ## Security Features
 
+To report a vulnerability, see [SECURITY.md](SECURITY.md). It also covers
+the threat model, scope and response times.
+
 - **Authorization**: Only recipients can claim, only payers can close/top-up
 - **Rate Validation**: Rates must be positive and within the admin cap
 - **Deposit Validation**: Deposits must be positive

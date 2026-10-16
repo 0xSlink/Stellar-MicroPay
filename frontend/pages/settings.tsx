@@ -19,6 +19,7 @@ import {
   type Locale,
 } from "@/lib/i18n";
 import WalletHealthPanel from "@/components/WalletHealthPanel";
+import LeaderboardPrivacyToggle from "@/components/LeaderboardPrivacyToggle";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -412,6 +413,8 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+
+            {publicKey && <LeaderboardPrivacyToggle />}
 
             {/* Username Registration Section */}
             {publicKey ? (

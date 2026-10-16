@@ -59,3 +59,6 @@ frontend/tsconfig.tsbuildinfo
 
 # ─── Persistent username store (Issue #1056) ────────────────────────────────
 backend/data/
+
+# Contract IDs written by `make deploy-local` (local network only)
+.contract-id.local

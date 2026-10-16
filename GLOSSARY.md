@@ -1,173 +1,186 @@
-# 📖 Stellar & Soroban Glossary
+# Stellar and Soroban Glossary
 
-Welcome to the Stellar MicroPay terminology guide! If you are new to the Stellar ecosystem or decentralized application (dApp) development, some concepts and acronyms might be unfamiliar. This glossary provides plain-English explanations, context for how each term applies to Stellar MicroPay, and direct links to the official documentation.
+Terms you will run into while working on Stellar MicroPay, in alphabetical
+order. Each entry says what the term means in this codebase and links to the
+file that implements it or the spec it comes from. Paths are relative to the
+repository root; `lib.rs` means `contracts/stellar-micropay-contract/src/lib.rs`.
 
----
-
-## 📑 Table of Contents
-
-- [Core Currency & Units](#core-currency--units)
-  - [XLM (Lumens)](#xlm-lumens)
-  - [Stroop](#stroop)
-- [Network & State Architecture](#network--state-architecture)
-  - [Ledger](#ledger)
-  - [Sequence Number](#sequence-number)
-  - [Stellar Consensus Protocol (SCP)](#stellar-consensus-protocol-scp)
-- [Smart Contracts & Runtime](#smart-contracts--runtime)
-  - [Soroban](#soroban)
-  - [WebAssembly (WASM)](#webassembly-wasm)
-- [APIs & Infrastructure](#apis--infrastructure)
-  - [Horizon](#horizon)
-  - [Soroban RPC](#soroban-rpc)
-- [Serialization & Data Formats](#serialization--data-formats)
-  - [XDR (External Data Representation)](#xdr-external-data-representation)
-- [Wallets & Key Management](#wallets--key-management)
-  - [Freighter](#freighter)
-  - [Ledger (Hardware Wallet)](#ledger-hardware-wallet)
-- [Stellar Ecosystem Proposals (SEPs)](#stellar-ecosystem-proposals-seps)
-  - [SEP-0007 (Delegated Signing URIs)](#sep-0007-delegated-signing-uris)
-  - [SEP-0010 (Stellar Web Authentication)](#sep-0010-stellar-web-authentication)
-- [Accounts & Asset Management](#accounts--asset-management)
-  - [Trustline](#trustline)
-  - [Federation](#federation)
-- [Off-Chain Execution & Oracles](#off-chain-execution--oracles)
-  - [Turrets (Stellar Turrets)](#turrets-stellar-turrets)
-- [Stellar MicroPay Specific Terms](#stellar-micropay-specific-terms)
-  - [Payment Stream](#payment-stream)
-  - [Rate Per Ledger](#rate-per-ledger)
+If you add a feature that introduces a new term, add it here in the right
+place.
 
 ---
 
-## Core Currency & Units
+### Basis points (bps)
+One basis point is 1/100 of a percent (1 bps = 0.01%). The contract charges an
+optional operator fee on every tip, stored as `FeeBps` and set with
+`set_fee_bps`; it is capped at `MAX_FEE_BPS = 500` (5%) and divided by
+`FEE_BPS_DENOMINATOR = 10_000`. See [`lib.rs`](contracts/stellar-micropay-contract/src/lib.rs).
 
-### XLM (Lumens)
-- **Plain English**: The native cryptocurrency token of the Stellar network. Lumens are used to pay network transaction fees and fund base account reserve balances that prevent ledger spam.
-- **In Stellar MicroPay**: The default currency used to open payment streams, claim streaming funds, and refund unspent deposits.
-- **Official Documentation**: [Stellar Lumens Fundamentals](https://developers.stellar.org/docs/learn/fundamentals/lumens)
-
-### Stroop
-- **Plain English**: The smallest indivisible unit of an XLM, named after computer scientist and Stellar co-founder David Mazières' dog. One XLM equals 10,000,000 stroops (`1 XLM = 10^7 stroops` or `0.0000001 XLM = 1 stroop`).
-- **In Stellar MicroPay**: Smart contract math (e.g., `rate_per_ledger`, `deposited`, and `claimed`) operates strictly in stroops (`i128`) to prevent fractional rounding errors that could occur with floating-point calculations.
-- **Official Documentation**: [Stellar Fees & Metering (Stroops)](https://developers.stellar.org/docs/learn/fundamentals/fees-resource-limits-metering#stroops) | [Lumens & Stroops](https://developers.stellar.org/docs/learn/fundamentals/lumens#stroop)
-
----
-
-## Network & State Architecture
-
-### Ledger
-- **Plain English**: A record of the entire state of the Stellar blockchain at a specific point in time—comparable to a "block" in Bitcoin or Ethereum. Every ~5 seconds, network validators reach consensus and close a new ledger containing all verified transactions and balance updates. Each ledger is identified by an incrementing sequence number (ledger height).
-- **In Stellar MicroPay**: Streaming payments are tied to ledger progression. Since ledgers close at a predictable ~5-second cadence, payment rates are configured as "stroops per ledger" to determine how much a recipient can claim at any point in time.
-- **Official Documentation**: [Stellar Ledgers](https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/ledgers)
-
-### Sequence Number
-- **Plain English**: An incremental counter associated with every Stellar account. When an account submits a transaction, the transaction must include a sequence number exactly one higher than the account's current sequence number. This acts as a nonce preventing transaction replay attacks and guaranteeing execution ordering.
-- **In Stellar MicroPay**: Required whenever preparing and signing transactions (via Freighter or backend services) so the network executes actions in sequential order.
-- **Official Documentation**: [Stellar Account Sequence Numbers](https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/accounts#sequence-number) | [Operations & Transactions](https://developers.stellar.org/docs/learn/fundamentals/transactions/operations-and-transactions#sequence-number)
-
-### Stellar Consensus Protocol (SCP)
-- **Plain English**: The federated Byzantine agreement (FBA) consensus mechanism used by Stellar. Unlike Proof of Work (mining) or Proof of Stake (bonding), nodes select which other nodes they trust (quorum slices), reaching decentralized consensus in 3 to 5 seconds with negligible energy consumption.
-- **Official Documentation**: [Stellar Consensus Protocol (SCP)](https://developers.stellar.org/docs/learn/fundamentals/stellar-consensus-protocol)
-
----
-
-## Smart Contracts & Runtime
-
-### Soroban
-- **Plain English**: The native smart contract platform built into the Stellar blockchain. Soroban allows developers to write performant, secure, Turing-complete programs deployed on Stellar, utilizing WebAssembly (WASM) and a developer-friendly Rust SDK.
-- **In Stellar MicroPay**: The streaming channel engine is implemented as a Soroban contract located in `contracts/stellar-micropay-contract/`. It manages channel state, deposits, and on-chain claims.
-- **Official Documentation**: [Soroban Documentation](https://developers.stellar.org/docs/smart-contracts) | [Soroban Architecture & Overview](https://soroban.stellar.org/docs)
-
-### WebAssembly (WASM)
-- **Plain English**: A portable, low-level binary format designed for safe, fast code execution. Soroban contracts are compiled from Rust into `.wasm` bytecode before being uploaded and executed on the Stellar network.
-- **In Stellar MicroPay**: Contracts are compiled with `cargo build --target wasm32-unknown-unknown --release` to produce the deployable WASM binary.
-- **Official Documentation**: [Soroban Contract Compilation](https://developers.stellar.org/docs/smart-contracts/getting-started/deploy-increment-contract)
-
----
-
-## APIs & Infrastructure
-
-### Horizon
-- **Plain English**: The client-facing RESTful API server for the Stellar network. Horizon translates raw ledger state from Stellar Core into convenient HTTP endpoints for querying accounts, payments, transactions, and trade offers, as well as streaming live events via Server-Sent Events (SSE).
-- **In Stellar MicroPay**: Used by both the frontend and backend to look up account balances, verify payment histories, and inspect base network state.
-- **Official Documentation**: [Horizon API Reference](https://developers.stellar.org/docs/data/apis/horizon) | [Horizon Overview](https://developers.stellar.org/docs/tools/horizon)
-
-### Soroban RPC
-- **Plain English**: A JSON-RPC service designed specifically for interacting with Soroban smart contracts. It provides methods to simulate contract calls (`simulateTransaction`), fetch ledger entries (`getLedgerEntries`), and submit contract invocations (`sendTransaction`).
-- **In Stellar MicroPay**: Used by the frontend client to simulate streaming payment claims, read contract storage, and broadcast contract transactions.
-- **Official Documentation**: [Soroban RPC Methods](https://developers.stellar.org/docs/data/apis/rpc)
-
----
-
-## Serialization & Data Formats
-
-### XDR (External Data Representation)
-- **Plain English**: An open standard binary serialization format (RFC 4506) used throughout Stellar to represent transactions, ledger entries, operations, and signatures in a deterministic, compact byte representation. In developer tools and JavaScript SDKs, binary XDR is typically encoded as a base64 string.
-- **In Stellar MicroPay**: When users sign payment authorization or smart contract calls, the transaction is formatted as an XDR envelope passed between the frontend, Freighter, and the Stellar network.
-- **Official Documentation**: [Stellar Data Structures & XDR](https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/xdr) | [Stellar Laboratory XDR Viewer](https://laboratory.stellar.org/#xdr-viewer)
-
----
-
-## Wallets & Key Management
+### Federation (SEP-2)
+Maps a readable address such as `alice*stellarmicropay.com` to a `G...` public
+key. The backend answers federation lookups at `GET /federation?q=...&type=name`
+using usernames registered in the app. See
+[`backend/src/routes/federation.js`](backend/src/routes/federation.js) and the
+[SEP-0002 spec](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0002.md).
 
 ### Freighter
-- **Plain English**: A popular non-custodial browser extension and mobile wallet for the Stellar and Soroban ecosystems developed by the Stellar Development Foundation. Freighter securely stores user keypairs locally, allowing users to sign transactions without giving decentralized applications direct access to their private keys.
-- **In Stellar MicroPay**: The primary browser wallet integration used for connecting an account, initiating streams, and claiming earnings.
-- **Official Documentation**: [Freighter Developer Guide](https://developers.stellar.org/docs/tools/developer-tools/wallets/freighter) | [Freighter Official Website](https://www.freighter.app/)
+The browser wallet extension the app connects to. It holds the user's keys and
+signs transactions the frontend builds; the app never sees a secret key. See
+[`frontend/lib/wallet.ts`](frontend/lib/wallet.ts) and the
+[Freighter docs](https://developers.stellar.org/docs/tools/developer-tools/wallets/freighter).
 
-### Ledger (Hardware Wallet)
-- **Plain English**: A physical hardware device (manufactured by Ledger SAS) that stores private keys offline in a secure element chip. Note: Distinguish between **Ledger hardware wallet** (the physical device) and a **Stellar ledger** (the network block/state).
-- **In Stellar MicroPay**: Supported via WebHID (`@ledgerhq/hw-app-stellar`) as an alternative to browser extension wallets for high-security transactions.
-- **Official Documentation**: [Stellar Hardware Wallet Guide](https://developers.stellar.org/docs/tools/developer-tools/wallets) | [Stellar MicroPay Ledger Docs](docs/ledger.md)
+### Horizon
+Stellar's REST API for accounts, payments and transactions. The frontend and
+backend read balances and payment history from it; its URL comes from
+`NEXT_PUBLIC_HORIZON_URL` / `HORIZON_URL` or the network chosen in Settings.
+See [`frontend/lib/stellar.ts`](frontend/lib/stellar.ts) and the
+[Horizon reference](https://developers.stellar.org/docs/data/apis/horizon).
 
----
+### Instance storage
+Soroban storage that lives with the contract instance and shares its lifetime
+(TTL). This contract keeps its admin, fee, frozen flag, tip totals, tip and
+receipt records, streams and time-locked escrows in instance storage, and bumps
+the instance TTL at the start of every entry point (`bump_instance`). See
+[`lib.rs`](contracts/stellar-micropay-contract/src/lib.rs) and
+[Soroban storage types](https://developers.stellar.org/docs/build/guides/storage/choosing-the-right-storage).
 
-## Stellar Ecosystem Proposals (SEPs)
+### Ledger (block)
+A closed snapshot of network state, roughly every 5 seconds, identified by a
+sequence number. Stream accrual is measured in ledgers (`start_ledger`,
+`rate_per_ledger`). Not to be confused with the Ledger hardware wallet. See
+[Stellar ledgers](https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/ledgers).
 
-SEPs are formal open-source specifications that describe standards and protocols adopted by the Stellar developer community.
+### Ledger (hardware wallet)
+The hardware device supported as an alternative signer over WebHID. See
+[`frontend/lib/wallet.ts`](frontend/lib/wallet.ts) (`getLedgerPublicKey`,
+`signTransactionWithLedger`) and [`docs/ledger.md`](docs/ledger.md).
 
-### SEP-0007 (SEP-7)
-- **Plain English**: A standard URI scheme (`web+stellar:...`) for delegating transaction signing and payment operations. It allows a website or QR code to prompt a user's wallet application (desktop or mobile) to sign a pre-configured transaction or make a payment without manual data entry.
-- **In Stellar MicroPay**: Used to power mobile payment deep links and QR codes for payment channel onboarding.
-- **Official Documentation**: [SEP-0007 Specification](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0007.md) | [Stellar Ecosystem SEPs Overview](https://developers.stellar.org/docs/tokens/sep-0007)
+### Memo
+A short note attached to a Stellar transaction. Text memos are limited to 28
+bytes of UTF-8, which the app checks with `memoTextByteLength`; memos are also
+carried in SEP-7 links and tip records. See
+[`frontend/lib/stellar.ts`](frontend/lib/stellar.ts) and
+[Stellar memos](https://developers.stellar.org/docs/learn/encyclopedia/transactions-specialized/memos).
 
-### SEP-0010 (SEP-10)
-- **Plain English**: A standard for cryptographic web authentication on Stellar. A server sends a challenge transaction containing a cryptographically random nonce; the client signs the transaction with their Stellar private key and returns it. Once verified, the server issues a session token (such as a JSON Web Token / JWT), proving wallet ownership without passwords.
-- **In Stellar MicroPay**: Used to securely authenticate users to backend services, verify identity for turret deployments, and protect user settings.
-- **Official Documentation**: [SEP-0010 Specification](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md) | [Stellar Web Authentication Guide](https://developers.stellar.org/docs/tokens/sep-0010)
+### Milestone escrow
+Funds a payer locks in the contract and a named approver releases milestone by
+milestone. The payer can dispute and, once the dispute timeout (at most
+`MAX_DISPUTE_TIMEOUT` ledgers) passes, reclaim the remainder. Records use
+persistent storage. See `create_milestone_escrow`, `approve_milestone`,
+`dispute_milestone` and `cancel_milestone_escrow` in
+[`lib.rs`](contracts/stellar-micropay-contract/src/lib.rs) and the
+[contract README](contracts/stellar-micropay-contract/README.md#milestone-escrow).
 
----
+### Payment stream
+A payer deposits funds into the contract and the recipient's claimable balance
+grows every ledger at `rate_per_ledger` until the deposit runs out. The payer
+can top up, pause, resume or close (refunding what has not accrued). See
+`open_stream`, `claim_stream`, `top_up_stream` and `close_stream` in
+[`lib.rs`](contracts/stellar-micropay-contract/src/lib.rs) and
+[`frontend/pages/streams.tsx`](frontend/pages/streams.tsx).
 
-## Accounts & Asset Management
+### Persistent storage
+Soroban storage for entries that each have their own TTL and can be restored
+after they expire. This contract uses it for milestone escrows and extends the
+TTL on every read and write (`load_escrow`, `save_escrow`). See
+[`lib.rs`](contracts/stellar-micropay-contract/src/lib.rs).
+
+### Rate per ledger
+How many stroops a stream moves from payer to recipient each ledger.
+Claimable is `min((current_ledger - start_ledger) * rate_per_ledger, deposited) - claimed`,
+ignoring paused time. See `get_claimable` in
+[`lib.rs`](contracts/stellar-micropay-contract/src/lib.rs).
+
+### SEP-7 (payment URIs)
+The `web+stellar:pay?...` and `web+stellar:tx?...` URI scheme for asking a
+wallet to pay or sign. The app builds and parses these for payment requests,
+QR codes and deep links. See
+[`frontend/lib/sep0007.ts`](frontend/lib/sep0007.ts) (`buildSep0007Uri`,
+`parseStellarURI`) and the
+[SEP-0007 spec](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0007.md).
+
+### SEP-10 (web authentication)
+Wallet-based login: the backend issues a challenge transaction signed by
+`SERVER_PRIVATE_KEY`, the user signs it in their wallet, and the backend returns
+a JWT signed with `JWT_SECRET`. Protected routes check it with `verifyJWT`. See
+[`backend/src/routes/auth.js`](backend/src/routes/auth.js),
+[`frontend/lib/wallet.ts`](frontend/lib/wallet.ts) (`performSEP0010Auth`) and
+the [SEP-0010 spec](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0010.md).
+
+### Sequence number
+A per-account counter; each transaction must use the next value, which prevents
+replays and orders transactions. Building a transaction loads the account first
+for this reason. See
+[accounts](https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/accounts).
+
+### Soroban
+Stellar's smart contract platform. Contracts are written in Rust with
+`soroban-sdk` and compiled to WASM. This repository has one contract, in
+[`contracts/stellar-micropay-contract/`](contracts/stellar-micropay-contract/).
+See the [Soroban docs](https://developers.stellar.org/docs/build/smart-contracts/overview).
+
+### Soroban RPC
+The JSON-RPC service used to simulate, submit and read contract calls
+(`simulateTransaction`, `getLedgerEntries`, `getEvents`). The backend reads
+contract events and streams through it (`SOROBAN_RPC_URL`). See
+[`backend/src/services/eventStreamService.js`](backend/src/services/eventStreamService.js)
+and the [RPC reference](https://developers.stellar.org/docs/data/apis/rpc).
+
+### Spec (contract spec)
+The interface description (functions, argument types, errors) embedded in the
+compiled WASM as XDR. The Stellar CLI and SDKs read it to encode `invoke`
+arguments and generate bindings. See
+[contract spec](https://developers.stellar.org/docs/learn/fundamentals/contract-development/types/fully-typed-contracts).
+
+### Stroop
+The smallest unit of XLM: 1 XLM = 10,000,000 stroops. Contract amounts
+(`deposited`, `claimed`, tip amounts) are `i128` stroops. See
+[lumens](https://developers.stellar.org/docs/learn/fundamentals/lumens).
+
+### Tip page
+A creator's public page at `/tip/<username>` where anyone can send them a tip.
+The page sends a Stellar payment and then reports it to the backend
+(`POST /api/tips`), which feeds the leaderboard. The contract separately offers
+`send_tip` for tips recorded on-chain with the operator fee. See
+[`frontend/pages/tip/[username].tsx`](frontend/pages/tip/%5Busername%5D.tsx),
+[`backend/src/services/tipsService.js`](backend/src/services/tipsService.js)
+and [`docs/analytics.md`](docs/analytics.md#leaderboard).
 
 ### Trustline
-- **Plain English**: An explicit line of trust an account must establish before it can hold or transact any non-native token (such as USDC, EURC, or custom project tokens). Trustlines prevent spam tokens from being deposited into user accounts without consent. Opening a trustline locks a small amount of XLM as a reserve requirement.
-- **In Stellar MicroPay**: Necessary when streaming or accepting non-XLM token payments; the recipient account must have a trustline open for the asset.
-- **Official Documentation**: [Stellar Trustlines](https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/accounts#trustlines) | [Trustline Glossary Entry](https://developers.stellar.org/docs/learn/glossary#trustline)
+An account's opt-in to hold a non-XLM asset; it reserves a little XLM. A
+recipient needs a trustline before they can receive tokens such as USDC. See
+[trustlines](https://developers.stellar.org/docs/learn/fundamentals/stellar-data-structures/accounts#trustlines).
 
-### Federation
-- **Plain English**: A protocol defined in SEP-0002 that maps human-readable addresses (e.g., `alice*stellar-micropay.org`) to 56-character Stellar public keys (`G...`) and optional memo IDs. This eliminates the risk of copy-pasting wrong wallet addresses.
-- **In Stellar MicroPay**: Enables easy recipient lookup so payers can open streams using readable names instead of lengthy public keys.
-- **Official Documentation**: [SEP-0002 Federation Protocol](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0002.md) | [Stellar Federation Guide](https://developers.stellar.org/docs/learn/glossary#federation)
+### TTL and bump
+Every Soroban storage entry has a time-to-live in ledgers. "Bumping" means
+calling `extend_ttl(threshold, extend_to)`: if the remaining TTL is below
+`threshold`, it is raised to `extend_to`. The contract uses
+`INSTANCE_TTL_THRESHOLD`/`INSTANCE_TTL_BUMP` and
+`ESCROW_TTL_THRESHOLD`/`ESCROW_TTL_BUMP`. See
+[`lib.rs`](contracts/stellar-micropay-contract/src/lib.rs) and
+[state archival](https://developers.stellar.org/docs/learn/fundamentals/contract-development/storage/state-archival).
 
----
+### Turrets
+Stellar Turrets run small JavaScript `txFunctions` off-chain and co-sign
+transactions when conditions are met. The app uses them for automated
+strategies such as recurring payments and DCA, via a sidecar server. See
+[`backend/src/services/turretsService.js`](backend/src/services/turretsService.js),
+[`backend/src/turretsServer.js`](backend/src/turretsServer.js),
+[`docs/turrets.md`](docs/turrets.md) and [tss.stellar.org](https://tss.stellar.org/).
 
-## Off-Chain Execution & Oracles
+### WASM
+WebAssembly, the bytecode format Soroban runs. `stellar contract build` turns
+the Rust contract into a `.wasm` file that is uploaded and deployed. See the
+[contract README](contracts/stellar-micropay-contract/README.md#build).
 
-### Turrets (Stellar Turrets)
-- **Plain English**: A decentralized off-chain smart contract and oracle execution protocol for Stellar. Turrets are independent servers that run deterministic JavaScript functions (called `txFunctions`) in sandboxed environments. When external conditions (e.g., off-chain API prices, scheduled intervals, or multi-party authorizations) are fulfilled, the turrets co-sign a Stellar transaction using their private keys, which can then be submitted to the network.
-- **In Stellar MicroPay**: Used to automate complex payment strategies like Dollar-Cost Averaging (DCA), recurring subscriptions, and stop-loss payments based on price feeds.
-- **Official Documentation**: [Stellar Turrets (TSS)](https://tss.stellar.org/) | [Stellar Turrets Reference GitHub](https://github.com/tyvdh/stellar-turrets) | [Stellar MicroPay Turrets Guide](docs/turrets.md)
+### XDR
+Stellar's binary encoding for transactions, ledger entries and contract
+values, usually passed around as base64. Wallets receive transaction XDR to
+sign (`signTransactionWithWallet` in
+[`frontend/lib/wallet.ts`](frontend/lib/wallet.ts)). See
+[XDR](https://developers.stellar.org/docs/learn/fundamentals/data-format/xdr).
 
----
-
-## Stellar MicroPay Specific Terms
-
-### Payment Stream
-- **Plain English**: An active payment channel between a payer and a recipient where funds accrue continuously in real time. The payer locks up an initial deposit, and the recipient can withdraw accrued funds whenever desired without interrupting the stream.
-- **Reference**: [README.md](README.md#contract-structure) | [Contract Implementation](contracts/stellar-micropay-contract/)
-
-### Rate Per Ledger
-- **Plain English**: The velocity at which funds transfer from payer to recipient, expressed in stroops per closed ledger (~5 seconds). For example, a rate of 100 stroops per ledger transfers 1,200 stroops every minute.
-- **Formula**:
-  $$\text{claimable} = \min((\text{current\_ledger} - \text{start\_ledger}) \times \text{rate\_per\_ledger} - \text{claimed}, \text{deposited} - \text{claimed})$$
-- **Reference**: [README.md Mathematical Calculations](README.md#mathematical-calculations)
+### XLM (lumens)
+Stellar's native asset, used for fees, account reserves and, by default, tips,
+streams and escrows in this app. See
+[lumens](https://developers.stellar.org/docs/learn/fundamentals/lumens).

@@ -103,3 +103,52 @@ Coverage includes:
 - `backend/src/routes/analytics.js` enforces admin access before invalidation.
 - `backend/src/server.js` allows the `DELETE` verb in CORS.
 - `backend/src/swagger.js` documents the admin endpoint and `bearerAuth` security scheme.
+
+## Leaderboard
+
+The public leaderboard (`frontend/pages/leaderboard.tsx`) calls
+`GET /api/tips/leaderboard`, served by `getLeaderboard()` in
+`backend/src/services/tipsService.js`. It does not use `analyticsService.js`
+and does not read Horizon or the Soroban contract directly.
+
+### Data sources
+
+| Metric | Source |
+| --- | --- |
+| Tips processed | Count of XLM tips recorded through `POST /api/tips` (the frontend posts each tip after the payment is submitted). Held in memory by `tipsService`, so it resets when the backend restarts. |
+| Total XLM tipped | Sum of the `amount` field of those same recorded XLM tips. Non-XLM tips are ignored. |
+| Top recipients | The 10 creator accounts with the highest recorded XLM received. |
+| Top senders | The 10 sender accounts with the highest recorded XLM sent. |
+| Federation name | Looked up from usernames registered in the app (`usernameService`), shown as `name*DOMAIN`. Accounts without a registered username show only the public key. |
+
+The underlying payments are public on the Stellar ledger, but the ranking
+itself is built from usage data the backend collects when the app records a
+tip. Payments made outside the app never appear. The per-creator
+`GET /api/tips/leaderboard/:creatorPublicKey` (top tippers for one creator)
+uses the same recorded tips.
+
+### Opting out
+
+Signed-in users can hide themselves from rankings in **Settings > Leaderboard
+privacy**. The setting is stored by the backend, not the browser:
+
+- `GET /api/tips/leaderboard/opt-out` returns `{ optedOut }` for the
+  authenticated account.
+- `PUT /api/tips/leaderboard/opt-out` with `{ "optedOut": true | false }`
+  updates it.
+
+Both require a SEP-10 JWT (`Authorization: Bearer <token>`) and only ever
+change the caller's own account. Opt-outs are written synchronously to
+`backend/data/leaderboard-opt-out.json` (override with
+`LEADERBOARD_OPTOUT_DATA_FILE`) using an atomic write, so they survive
+restarts.
+
+Opted-out accounts are removed server-side from the recipient and sender
+rankings and from per-creator top tipper lists, so they are
+never present in the API response. Their tips still count toward the aggregate
+"Tips processed" and "Total XLM tipped" figures and toward the totals of the
+creators they tipped, because removing them would misstate those creators'
+earnings. Opting out does not hide anything on the public Stellar ledger.
+
+Tests: `backend/__tests__/leaderboardOptOut.test.js` and
+`frontend/__tests__/LeaderboardPrivacyToggle.test.tsx`.

@@ -9,6 +9,7 @@ const express = require("express");
 const router = express.Router();
 const { strictLimiter } = require("../middleware/rateLimit");
 const { validatePublicKey } = require("../middleware/sanitization");
+const { verifyJWT } = require("../middleware/auth");
 
 const tipsController = require("../controllers/tipsController");
 
@@ -45,6 +46,15 @@ router.get(
  * Get all tips sent by a user.
  */
 router.get("/sent/:senderPublicKey", strictLimiter, validatePublicKey("senderPublicKey"), tipsController.getTipsSent);
+
+/**
+ * GET/PUT /api/tips/leaderboard/opt-out
+ * Read or change whether the authenticated account appears on public
+ * leaderboards (#1511). Registered before `/leaderboard/:creatorPublicKey`
+ * so "opt-out" is not taken for a public key.
+ */
+router.get("/leaderboard/opt-out", strictLimiter, verifyJWT, tipsController.getLeaderboardOptOut);
+router.put("/leaderboard/opt-out", strictLimiter, verifyJWT, tipsController.setLeaderboardOptOut);
 
 /**
  * GET /api/tips/leaderboard/:creatorPublicKey
