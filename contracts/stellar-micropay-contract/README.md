@@ -116,6 +116,61 @@ stellar contract deploy \
   --network testnet
 ```
 
+## Local network
+
+You can deploy and exercise the contract without testnet by running a
+standalone Stellar network in Docker. The `stellar` service in the root
+`docker-compose.yml` runs `stellar/quickstart` in `--local` mode with Horizon,
+Soroban RPC and Friendbot on port 8000. It sits behind the `localnet` profile,
+so `docker compose up` on its own does not start it.
+
+Requirements: Docker, the Stellar CLI and the Rust toolchain from
+[Prerequisites](#prerequisites).
+
+From the repository root:
+
+```bash
+make localnet-up      # start quickstart and wait until Soroban RPC reports healthy
+make deploy-local     # register the "local" CLI network, fund local-admin, build, deploy, initialize
+make smoke-local      # read-only checks: get_admin, get_fee_bps, is_frozen
+make localnet-down    # stop the container
+```
+
+`make deploy-local` writes the contract ID to `.contract-id.local` (git-ignored)
+and always deploys a fresh instance, because a standalone network loses its
+state when the container is recreated. The deployer identity defaults to
+`local-admin`; override it with `make deploy-local LOCAL_IDENTITY=me`.
+
+Under the hood these targets run:
+
+```bash
+stellar network add local \
+  --rpc-url http://localhost:8000/rpc \
+  --network-passphrase "Standalone Network ; February 2017"
+stellar keys generate local-admin --network local --fund
+STELLAR_IDENTITY=local-admin ./scripts/deploy-contract.sh local
+```
+
+### Pointing the app at the local network
+
+| Component | Variable | Local value |
+| --- | --- | --- |
+| Backend | `STELLAR_NETWORK` | `testnet` (keeps the Horizon/SDK defaults; see note below) |
+| Backend | `HORIZON_URL` | `http://localhost:8000` (`http://stellar:8000` from inside compose) |
+| Backend | `SOROBAN_RPC_URL` | `http://localhost:8000/rpc` (`http://stellar:8000/rpc` from inside compose) |
+| Backend | `CONTRACT_ID` | contents of `.contract-id.local` |
+| Frontend | `NEXT_PUBLIC_HORIZON_URL` | `http://localhost:8000` |
+| Frontend | `NEXT_PUBLIC_CONTRACT_ID` | contents of `.contract-id.local` |
+
+In the frontend you can also pick **Custom** in Settings and enter
+`http://localhost:8000` as the Horizon URL.
+
+Limitation: the frontend and the backend Turrets/SEP-10 code currently sign
+with either the testnet or the public passphrase, never the standalone one.
+Reading contract state and Horizon data works against the local network, but
+wallet-signed transactions from the UI will be rejected until the app learns a
+configurable passphrase. Use the Stellar CLI (as above) for write calls.
+
 ## Invoke
 
 ```bash

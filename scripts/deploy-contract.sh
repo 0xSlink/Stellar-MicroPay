@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and deploy the Soroban contract to Stellar testnet or mainnet.
+# Build and deploy the Soroban contract to a local network, testnet or mainnet.
 #
 # Prerequisites:
 #   - Rust + wasm32-unknown-unknown target
@@ -7,7 +7,10 @@
 #   - A funded Stellar identity
 #
 # Usage:
-#   ./scripts/deploy-contract.sh [testnet|mainnet] [identity] [--confirm]
+#   ./scripts/deploy-contract.sh [local|testnet|mainnet] [identity] [--confirm]
+#
+# "local" expects a Stellar CLI network named "local" pointing at the
+# stellar/quickstart container (see `make localnet-up` and the contract README).
 #
 # STELLAR_NETWORK and STELLAR_IDENTITY can be used as defaults.
 
@@ -24,7 +27,7 @@ NETWORK_SET=false
 
 while (($#)); do
   case "$1" in
-    testnet|mainnet)
+    local|testnet|mainnet)
       if [[ "$NETWORK_SET" == true ]]; then
         echo "Error: specify the network only once." >&2
         exit 2
@@ -56,8 +59,8 @@ while (($#)); do
   esac
 done
 
-if [[ "$NETWORK" != testnet && "$NETWORK" != mainnet ]]; then
-  echo "Error: network must be testnet or mainnet (got '$NETWORK')." >&2
+if [[ "$NETWORK" != local && "$NETWORK" != testnet && "$NETWORK" != mainnet ]]; then
+  echo "Error: network must be local, testnet or mainnet (got '$NETWORK')." >&2
   exit 2
 fi
 
