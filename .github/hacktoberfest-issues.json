@@ -1,0 +1,175 @@
+{
+  "topics": [
+    "stellar",
+    "soroban",
+    "micropayments",
+    "hacktoberfest",
+    "hacktoberfest2026",
+    "web3",
+    "cryptocurrency"
+  ],
+  "labels": [
+    {
+      "name": "hacktoberfest",
+      "color": "f97316",
+      "description": "Issues designated for Hacktoberfest contributions"
+    },
+    {
+      "name": "hacktoberfest-accepted",
+      "color": "22c55e",
+      "description": "PR accepted for Hacktoberfest participation"
+    },
+    {
+      "name": "good-first-issue",
+      "color": "7057ff",
+      "description": "Beginner-friendly task for new contributors"
+    },
+    {
+      "name": "intermediate",
+      "color": "0284c7",
+      "description": "Intermediate difficulty task requiring architectural context"
+    }
+  ],
+  "curated_issues": [
+    {
+      "id": 1322,
+      "title": "Add documentation & usage examples for SEP-0002 federation lookups",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "docs"],
+      "area": "docs"
+    },
+    {
+      "id": 1323,
+      "title": "Add tooltips explaining Stroop amounts in TransactionList",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "frontend"],
+      "area": "frontend"
+    },
+    {
+      "id": 1324,
+      "title": "Expand Arabic locale translations for payment error toasts in locales/ar.json",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "i18n"],
+      "area": "frontend"
+    },
+    {
+      "id": 1325,
+      "title": "Improve dark/light theme contrast for disabled buttons in styles/globals.css",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "ui"],
+      "area": "frontend"
+    },
+    {
+      "id": 1326,
+      "title": "Add QR code copy feedback animation with auto-dismiss toast",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "frontend"],
+      "area": "frontend"
+    },
+    {
+      "id": 1327,
+      "title": "Add unit tests for network latency badge in network-page.test.tsx",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "testing"],
+      "area": "frontend"
+    },
+    {
+      "id": 1328,
+      "title": "Document Friendbot testnet faucet rate limits and fallback Horizon endpoints in ENV.md",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "docs"],
+      "area": "docs"
+    },
+    {
+      "id": 1329,
+      "title": "Add clear input validation message for memo character length in SendPaymentForm.tsx",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "frontend"],
+      "area": "frontend"
+    },
+    {
+      "id": 1330,
+      "title": "Add keyboard navigation accessibility (Enter / Space) to custom dropdown menus",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "a11y"],
+      "area": "frontend"
+    },
+    {
+      "id": 1331,
+      "title": "Add backend health check status indicator to frontend footer",
+      "difficulty": "beginner",
+      "labels": ["hacktoberfest", "good-first-issue", "frontend"],
+      "area": "frontend"
+    },
+    {
+      "id": 1332,
+      "title": "Implement exponential backoff retry for Soroban RPC transaction simulation",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "backend"],
+      "area": "backend"
+    },
+    {
+      "id": 1333,
+      "title": "Add integration tests for reverse federation type=id lookups with mocked Horizon",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "backend", "testing"],
+      "area": "backend"
+    },
+    {
+      "id": 1334,
+      "title": "Add client-side CSV export date range and asset type filter in csv-export.ts",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "frontend"],
+      "area": "frontend"
+    },
+    {
+      "id": 1335,
+      "title": "Add rate limit metrics histogram in Prometheus metrics endpoint (/metrics)",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "backend"],
+      "area": "backend"
+    },
+    {
+      "id": 1336,
+      "title": "Add WebAuthn P-256 signature verification helper in backend authentication routes",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "backend", "security"],
+      "area": "backend"
+    },
+    {
+      "id": 1337,
+      "title": "Improve Soroban contract event log deserialization for stream claims in streamService.js",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "contracts"],
+      "area": "backend"
+    },
+    {
+      "id": 1338,
+      "title": "Add automated visual regression tests for RTL Arabic layout in Playwright smoke tests",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "testing"],
+      "area": "frontend"
+    },
+    {
+      "id": 1339,
+      "title": "Support custom token asset trustline verification in payments flow",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "frontend"],
+      "area": "frontend"
+    },
+    {
+      "id": 1340,
+      "title": "Add atomic file locking to JSON username storage to prevent concurrent write collisions",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "backend"],
+      "area": "backend"
+    },
+    {
+      "id": 1341,
+      "title": "Add HMAC webhook signature verification middleware for external payment notifications",
+      "difficulty": "intermediate",
+      "labels": ["hacktoberfest", "intermediate", "backend", "security"],
+      "area": "backend"
+    }
+  ]
+}
