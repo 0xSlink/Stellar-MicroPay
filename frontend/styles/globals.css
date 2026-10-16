@@ -119,6 +119,15 @@
     scroll-behavior: smooth;
   }
 
+  /* Issue #1318 — RTL layout support using logical CSS properties */
+  [dir="rtl"] {
+    direction: rtl;
+  }
+
+  [dir="ltr"] {
+    direction: ltr;
+  }
+
   body {
     background-color: var(--color-bg);
     color: var(--color-text);

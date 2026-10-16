@@ -274,12 +274,37 @@ export default function Home() {
           </div>
         )}
 
-        <div className="text-center pt-12 border-t border-white/5">
-          <p className="text-slate-600 text-sm">
-            Open source · MIT License ·{" "}
-            <a href="https://github.com/your-org/stellar-micropay" target="_blank" rel="noopener noreferrer" className="hover:text-stellar-400 transition-colors cursor-pointer">
-              Contribute on GitHub
+        <div className="text-center pt-12 border-t border-white/5 space-y-3">
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400">
+            <a
+              href="https://discord.gg/greenpay"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-stellar-400 transition-colors flex items-center gap-1.5"
+            >
+              <span>Discord (#greenpay)</span>
             </a>
+            <span className="text-slate-600">·</span>
+            <a
+              href="https://t.me/greenpay_community"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-stellar-400 transition-colors flex items-center gap-1.5"
+            >
+              <span>Telegram Community</span>
+            </a>
+            <span className="text-slate-600">·</span>
+            <a
+              href="https://github.com/Emmy123222/Stellar-MicroPay"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-stellar-400 transition-colors flex items-center gap-1.5"
+            >
+              <span>Contribute on GitHub</span>
+            </a>
+          </div>
+          <p className="text-slate-600 text-sm">
+            Open source · MIT License
           </p>
         </div>
       </div>

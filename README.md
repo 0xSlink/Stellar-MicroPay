@@ -1,5 +1,9 @@
 # Stellar-MicroPay: Streaming Payment Channels using Soroban
 
+[![Discord](https://img.shields.io/badge/Discord-%23greenpay-5865F2?logo=discord&logoColor=white)](https://discord.gg/greenpay)
+[![Telegram](https://img.shields.io/badge/Telegram-GreenPay%20Community-2CA5E0?logo=telegram&logoColor=white)](https://t.me/greenpay_community)
+[![Hacktoberfest](https://img.shields.io/badge/Hacktoberfest-2026-orange?logo=hacktoberfest&logoColor=white)](https://hacktoberfest.com)
+
 ## Overview
 
 This project implements a Soroban smart contract for streaming payment channels on the Stellar network. The contract allows a payer to deposit XLM and stream it to a recipient at a defined rate (e.g., 1 XLM per hour). The recipient can claim the streamed amount at any time.
@@ -268,6 +272,14 @@ docker pull ghcr.io/emmy123222/stellar-micropay-frontend:latest
 - [🤝 Contributing Guide](CONTRIBUTING.md) — Guidelines for contributing and setting up the development environment.
 - [🚀 Deployment Guide](DEPLOYMENT_GUIDE.md) — Instructions for deploying to production.
 - [📚 Technical Architecture & Docs](docs/) — Detailed documentation on architecture, Ledger hardware wallet support, Turrets, analytics, and APIs.
+
+## 💬 Community & Discussion
+
+Connect with contributors, ask questions, and share ideas:
+- **Discord**: Join our community Discord in the [#greenpay](https://discord.gg/greenpay) channel.
+- **Telegram**: Join the [GreenPay Community](https://t.me/greenpay_community) Telegram group.
+- **Hacktoberfest**: Check out our [Contributing Guide](CONTRIBUTING.md#hacktoberfest) to get started on open issues during October!
+
 ## Contributors
 
 Thanks to everyone who has contributed to Stellar-MicroPay! 🎉
