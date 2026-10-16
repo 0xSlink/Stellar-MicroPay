@@ -9,6 +9,8 @@
 #
 # The suite exits 0 when all Jest tests pass.
 # CI uses the integration-test job defined in .github/workflows/ci.yml.
+#
+# mock-horizon endpoints, fixtures and limitations: mock-horizon/README.md
 
 version: "3.9"
 
