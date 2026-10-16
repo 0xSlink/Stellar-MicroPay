@@ -756,7 +756,44 @@ const options = {
         get: {
           tags: ["Tips"],
           summary: "Get the top XLM tip senders and recipients",
+          description:
+            "Accounts that opted out via PUT /api/tips/leaderboard/opt-out are excluded from the rankings. Totals still include their tips.",
           responses: { 200: { description: "Community tip leaderboard" } },
+        },
+      },
+      "/api/tips/leaderboard/opt-out": {
+        get: {
+          tags: ["Tips"],
+          summary: "Get whether the authenticated account is hidden from leaderboards",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: { description: "Current opt-out state" },
+            401: { description: "Missing or invalid JWT" },
+            429: { description: "Rate limit exceeded" },
+          },
+        },
+        put: {
+          tags: ["Tips"],
+          summary: "Opt the authenticated account in or out of public leaderboards",
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["optOut"],
+                  properties: { optOut: { type: "boolean" } },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Updated opt-out state, persisted before responding" },
+            400: { description: "optOut is not a boolean" },
+            401: { description: "Missing or invalid JWT" },
+            429: { description: "Rate limit exceeded" },
+          },
         },
       },
       "/api/webhooks/register": {
