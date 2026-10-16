@@ -2,13 +2,49 @@
 
 ## Supported versions
 
-Security fixes land on `develop` and are released from `main`. Older release lines are not patched — please upgrade to the latest release before reporting an issue that only affects an old version.
+Security fixes land on `main` and ship in the next release. Older releases are
+not patched, so please check that an issue still reproduces on the latest
+`main` before reporting it.
 
 | Version | Supported |
 | --- | --- |
-| `develop` / latest `main` | ✅ |
-| Previous release | ❌ |
-| Anything older | ❌ |
+| Latest `main` / latest release | Yes |
+| Previous release | No |
+| Anything older | No |
+
+## Threat model
+
+Stellar MicroPay is a non-custodial app made of three parts with different
+trust properties:
+
+- **Frontend (`frontend/`) is the trust root for users.** Private keys never
+  leave Freighter or a Ledger device, but the JavaScript we serve builds every
+  transaction the wallet is asked to sign. A compromised bundle, dependency or
+  hosting account could rewrite a destination address, amount or memo before
+  the signing prompt, and most users would not notice. Supply-chain issues,
+  XSS, and anything that lets an attacker change what the app asks a wallet to
+  sign are treated as high severity.
+- **Backend (`backend/`) holds no user funds, but holds secrets.** It keeps
+  `JWT_SECRET` (signs session tokens; leaking it lets anyone impersonate any
+  account in the API) and `SERVER_PRIVATE_KEY` (the server account used to sign
+  SEP-10 challenges). It also stores user data such as usernames, contacts,
+  webhooks and leaderboard preferences. Authentication bypass, secret
+  disclosure, SSRF through webhooks and data leaks between accounts are in
+  scope.
+- **Contract (`contracts/stellar-micropay-contract/`) holds funds.** Streamed,
+  escrowed and milestone deposits sit in the contract until they are claimed,
+  released or refunded. Any way to move those funds without the right
+  authorization, lock them permanently, or abuse admin functions (`upgrade`,
+  `set_admin`, `freeze`) is critical.
+
+Known accepted risks:
+
+- Anyone who controls the admin key can upgrade the contract or freeze it. This
+  is intentional for incident response; the admin key must be kept offline.
+- Tip leaderboard data is recorded by the backend when the app reports a tip,
+  and is not verified against the ledger.
+- The app relies on the integrity of public Horizon and Soroban RPC endpoints
+  for the data it displays.
 
 ## Reporting a vulnerability
 
@@ -17,35 +53,51 @@ Security fixes land on `develop` and are released from `main`. Older release lin
 Machine-readable contact details are published at
 [`/.well-known/security.txt`](./frontend/public/.well-known/security.txt).
 
-1. Use GitHub's private vulnerability reporting on this repository (**Security** → **Advisories** → **Report a vulnerability**) so the report is only visible to the maintainers.
-2. If private reporting is unavailable, contact the maintainers through their GitHub profiles first and agree on a disclosure date before anything is made public. You can also report by email to **emmanuelogheneovo17@gmail.com**.
-3. Include the affected component (`frontend/`, `backend/`, or `contracts/stellar-micropay-contract/`), reproduction steps, and the impact you observed.
-
-Please give the maintainers a reasonable window to ship a fix before disclosing. We will acknowledge a report and confirm the fix once it is released.
+1. Preferred: GitHub private vulnerability reporting on this repository
+   (**Security** > **Advisories** > **Report a vulnerability**), so only the
+   maintainers can see the report.
+2. If that button is not available, email **emmanuelogheneovo17@gmail.com**
+   with the subject line `[SECURITY] Stellar MicroPay`.
+3. Include the affected component (`frontend/`, `backend/`, or
+   `contracts/stellar-micropay-contract/`), reproduction steps, and the impact
+   you observed.
 
 When reporting, please include:
 
 1. A concise description of the vulnerability and its potential impact.
-2. Steps to reproduce or a proof-of-concept (PoC) — a minimal code snippet is ideal.
-3. The version / commit hash where you observed the issue.
+2. Steps to reproduce or a proof of concept (a minimal snippet is ideal).
+3. The version or commit hash where you observed the issue.
 4. Your suggested severity (Critical / High / Medium / Low).
 
 We will acknowledge receipt within **48 hours** and aim to provide an initial
-assessment within **5 business days**.
+assessment within **5 business days**. Please give us a reasonable window to
+ship a fix before disclosing anything publicly.
 
 ## Scope
 
-In-scope for this policy:
+In scope:
 
-- `contracts/stellar-micropay-contract/` — the Soroban smart contract
-- Backend API (`backend/`)
-- Frontend (`frontend/`)
-- Any dependency vulnerability that directly affects users of this project
+- `contracts/stellar-micropay-contract/`, the Soroban smart contract,
+  including admin and upgrade paths
+- The backend API (`backend/`), including SEP-10 auth, JWT handling,
+  webhooks, federation and the Turrets sidecar
+- The frontend (`frontend/`), including anything that changes what a wallet is
+  asked to sign
+- Build, CI and release configuration in this repository (`.github/`,
+  Dockerfiles, deploy scripts)
+- Dependency vulnerabilities that are reachable in this project
 
 Out of scope:
 
-- Stellar protocol-level issues — report those to the [Stellar Bug Bounty](https://www.stellar.org/bug-bounty-program)
-- Issues in third-party services (Vercel, Docker Hub, etc.)
+- Stellar protocol, Stellar Core, Horizon or Soroban RPC issues. Report those
+  to the [Stellar Bug Bounty](https://www.stellar.org/bug-bounty-program)
+- Vulnerabilities in Freighter, Ledger firmware or other wallets
+- Issues in third-party services we deploy to (Vercel, Docker Hub, GHCR)
+- Attacks that need an already compromised user device or browser
+- Testnet-only funds and the local development stack (`docker compose`,
+  `make localnet-up`), including the placeholder dev `JWT_SECRET`
+- Missing security headers or rate limits with no demonstrated impact,
+  and social engineering of maintainers
 - Theoretical vulnerabilities without a practical attack path
 
 ## Disclosure Policy
