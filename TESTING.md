@@ -1,6 +1,6 @@
 # 🧪 Testing
 
-Everything you need to run the full Stellar MicroPay test suite locally. Four suites, each runnable on its own:
+Everything you need to run the full Stellar MicroPay test suite locally. Four suites, each runnable on its own, plus a Docker-based integration run against a mock Horizon server:
 
 | Suite | Runner | Location | Command |
 | --- | --- | --- | --- |
@@ -8,6 +8,7 @@ Everything you need to run the full Stellar MicroPay test suite locally. Four su
 | Frontend e2e | [Playwright](https://playwright.dev/) | `frontend/e2e/` | `npm run test:e2e` |
 | Backend unit | [Jest](https://jestjs.io/) + Supertest | `backend/__tests__/` | `npm test` |
 | Soroban contract | `cargo test` + `soroban-sdk` testutils | `contracts/stellar-micropay-contract/` | `cargo test` |
+| Backend integration | Backend Jest suite + [mock Horizon](mock-horizon/README.md) | `docker-compose.test.yml` | `docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from backend-test` |
 
 All commands below are copy-paste runnable from the repo root unless the snippet says otherwise. CI runs the same commands — see [What CI runs](#-what-ci-runs).
 
@@ -20,6 +21,7 @@ All commands below are copy-paste runnable from the repo root unless the snippet
 - [Frontend e2e tests (Playwright)](#-frontend-e2e-tests-playwright)
 - [Backend unit tests](#-backend-unit-tests)
 - [Soroban contract tests](#-soroban-contract-tests)
+- [Integration tests (mock Horizon)](#-integration-tests-mock-horizon)
 - [Running everything](#-running-everything)
 - [Adding new tests](#-adding-new-tests)
 - [What CI runs](#-what-ci-runs)
@@ -143,6 +145,27 @@ npm test -- -t "should return valid TOML"   # one test by name
 Backend tests `require` the Express app directly (`require("../src/server")`), so there is nothing to start first. Copy [`backend/.env.example`](backend/.env.example) to `backend/.env` if a suite touches configuration.
 
 Docs: [Jest getting started](https://jestjs.io/docs/getting-started) · [Supertest](https://github.com/ladjs/supertest)
+
+---
+
+## 🧱 Integration tests (mock Horizon)
+
+[`docker-compose.test.yml`](docker-compose.test.yml) runs two containers. `mock-horizon` is a small fake Horizon API (source: [`mock-horizon/server.js`](mock-horizon/server.js)). `backend-test` runs the backend Jest suite with `HORIZON_URL=http://mock-horizon:8000`, after the mock's healthcheck passes.
+
+```bash
+docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from backend-test
+docker compose -f docker-compose.test.yml down --volumes --remove-orphans
+```
+
+**Use the mock, not live testnet**, when a test needs a Horizon response. Testnet tests are slow, rate-limited and flaky, and they break when friendbot or the network is down. The mock is deterministic and offline. It has no account list: every account ID gets 100 XLM, one 10 XLM payment, no transactions, and every submission succeeds with a fixed hash.
+
+Run the mock on its own:
+
+```bash
+cd mock-horizon && npm install && npm start    # http://localhost:8000
+```
+
+It only covers `/`, `/accounts/:id`, `/accounts/:id/payments`, `/accounts/:id/transactions` and `POST /transactions`. There's no pagination, no streaming and no error responses. It's plain `http://`, which `Horizon.Server` rejects without `allowHttp`. Before relying on it, read [`mock-horizon/README.md`](mock-horizon/README.md) for the full endpoint and fixture tables, how to point the backend or frontend at it, its limitations and how to extend it.
 
 ---
 
@@ -324,6 +347,7 @@ Mirrors of the jobs in [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
 | `backend` | `backend/` | `npm ci` → `npm run lint` → `npm test` |
 | `contracts` | repo root | `cargo check --target wasm32v1-none` → `cargo test` → `cargo build --target wasm32v1-none --release` |
 | `e2e` | `frontend/` | `npm ci` → `npx playwright install --with-deps chromium` → `npm run test:e2e` |
+| `integration-test` | repo root | `docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from backend-test` → `down --volumes --remove-orphans` |
 
 Run the same list locally before opening a PR:
 
@@ -345,6 +369,8 @@ cargo test
 | `@/` import not resolving in a new test | The alias comes from `moduleNameMapper` in `frontend/jest.config.ts`; keep the file under `frontend/` |
 | `cargo test` fails to resolve the SDK | Run from the repo root (workspace) or the contract dir, and confirm `Cargo.lock`/registry access |
 | `env(...) is empty` in a contract test | Use `Env::default()` per test, or `Env::default()` with an explicit `Env { ..Env::default() }` ledger config; nothing external is needed |
+| `Cannot connect to insecure horizon server` | `Horizon.Server` was given the `http://` mock URL without `{ allowHttp: true }`; see [mock-horizon/README.md](mock-horizon/README.md#-pointing-the-app-at-it) |
+| Mock Horizon returns an HTML `Cannot GET ...` page | That endpoint isn't implemented; add it to `mock-horizon/server.js` or mock it in the test |
 | Backend suite needs credentials | `cp backend/.env.example backend/.env`; most suites mock Stellar and need no live network |
 
 ---
