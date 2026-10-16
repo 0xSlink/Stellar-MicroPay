@@ -15,6 +15,7 @@ import {
 import { formatAsset, timeAgo, copyToClipboard, exportFilteredTransactionsToCSV } from "@/utils/format";
 import { loadAllPaymentNotes, savePaymentNote } from "@/lib/usePaymentNotes";
 import { useToast } from "@/lib/useToast";
+import { isReceiptEligible } from "@/lib/receipts";
 import Toast from "@/components/Toast";
 import clsx from "clsx";
 
@@ -36,6 +37,12 @@ interface TransactionListProps {
   onPaymentsChange?: (payments: PaymentRecord[]) => void;
   /** Called when the user wants to print a receipt for a payment. */
   onPrintReceipt?: (payment: PaymentRecord) => void;
+  /** Called when the user wants to mint an on-chain receipt for a sent payment. */
+  onMintReceipt?: (payment: PaymentRecord) => void;
+  /** Transaction hash of the payment whose receipt is currently being minted. */
+  mintingReceiptHash?: string | null;
+  /** Transaction hashes that already have a minted receipt. */
+  mintedReceiptHashes?: Record<string, number>;
   /** Optional single incoming payment to prepend in real-time. */
   incomingPayment?: PaymentRecord | null;
   onSendAgain?: (to: string, amount: string) => void;
@@ -184,6 +191,9 @@ export default function TransactionList({
   filters = { direction: "all", minAmount: "", memoSearch: "" },
   onPaymentsChange,
   onPrintReceipt,
+  onMintReceipt,
+  mintingReceiptHash = null,
+  mintedReceiptHashes = {},
   incomingPayment,
   onSendAgain,
   onRepeatPayment,
@@ -757,6 +767,47 @@ export default function TransactionList({
                     <RepeatIcon className="w-3 h-3" />
                     Repeat
                   </button>
+
+                  {onPrintReceipt && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPrintReceipt(tx);
+                      }}
+                      className="text-slate-500 hover:text-stellar-400 px-1 py-0.5 rounded transition-colors cursor-pointer"
+                      title="Print receipt"
+                      aria-label={`Print receipt for transaction ${tx.transactionHash.slice(0, 8)}`}
+                    >
+                      <PrinterIcon className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
+                  {/* Mint on-chain receipt for eligible sent payments */}
+                  {onMintReceipt && isReceiptEligible(tx, publicKey) && (
+                    mintedReceiptHashes[tx.transactionHash] !== undefined ? (
+                      <span
+                        className="inline-flex items-center text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded whitespace-nowrap"
+                        data-testid={`receipt-minted-${tx.id}`}
+                      >
+                        {`Receipt #${mintedReceiptHashes[tx.transactionHash]}`}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMintReceipt(tx);
+                        }}
+                        disabled={mintingReceiptHash !== null}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded transition-colors whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Mint an on-chain receipt for this payment (signs with your wallet)"
+                        aria-label={`Mint receipt for payment to ${shortenAddress(targetAddress, 4)}`}
+                      >
+                        {mintingReceiptHash === tx.transactionHash ? "Minting…" : "Mint receipt"}
+                      </button>
+                    )
+                  )}
 
                   <a
                     href={explorerUrl(tx.transactionHash)}
