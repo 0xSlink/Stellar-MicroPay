@@ -54,6 +54,12 @@ git checkout main
 git merge upstream/main
 ```
 
+### 5. Learn the vocabulary
+
+New to Stellar or Soroban? Read [GLOSSARY.md](GLOSSARY.md) first. It explains
+terms such as stroops, SEP-7, SEP-10, TTL bumps, payment streams and milestone
+escrows, with links to the files that implement them.
+
 ---
 
 ## 🏃 Running the Project Locally
