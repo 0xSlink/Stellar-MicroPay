@@ -8,16 +8,16 @@
 const express = require("express");
 const router = express.Router();
 const { strictLimiter } = require("../middleware/rateLimit");
+const { validatePublicKey } = require("../middleware/sanitization");
+const { verifyJWT } = require("../middleware/auth");
 
 const tipsController = require("../controllers/tipsController");
-
-router.get("/leaderboard", strictLimiter, tipsController.getLeaderboard);
 
 /**
  * POST /api/tips
  * Record a new tip.
  */
-router.post("/", strictLimiter, validateBody(tipBodySchema), tipsController.recordTip);
+router.post("/", strictLimiter, tipsController.recordTip);
 
 /**
  * GET /api/tips/received/:creatorPublicKey
@@ -45,18 +45,27 @@ router.get(
  * GET /api/tips/sent/:senderPublicKey
  * Get all tips sent by a user.
  */
-  router.get("/sent/:senderPublicKey", strictLimiter, validatePublicKey("senderPublicKey"), tipsController.getTipsSent);
+router.get("/sent/:senderPublicKey", strictLimiter, validatePublicKey("senderPublicKey"), tipsController.getTipsSent);
+
+/**
+ * GET/PUT /api/tips/leaderboard/opt-out
+ * Read or change whether the authenticated account appears on public
+ * leaderboards (#1511). Registered before `/leaderboard/:creatorPublicKey`
+ * so "opt-out" is not taken for a public key.
+ */
+router.get("/leaderboard/opt-out", strictLimiter, verifyJWT, tipsController.getLeaderboardOptOut);
+router.put("/leaderboard/opt-out", strictLimiter, verifyJWT, tipsController.setLeaderboardOptOut);
 
 /**
  * GET /api/tips/leaderboard/:creatorPublicKey
  * Get top tippers for a creator.
  */
-  router.get("/leaderboard/:creatorPublicKey", strictLimiter, validatePublicKey("creatorPublicKey"), tipsController.getTopTippers);
+router.get("/leaderboard/:creatorPublicKey", strictLimiter, validatePublicKey("creatorPublicKey"), tipsController.getTopTippers);
 
 /**
  * GET /api/tips/leaderboard
  * Get global leaderboard with top recipients and senders.
  */
-router.get("/leaderboard", strictLimiter, tipsController.getGlobalLeaderboard);
+router.get("/leaderboard", strictLimiter, tipsController.getLeaderboard);
 
 module.exports = router;

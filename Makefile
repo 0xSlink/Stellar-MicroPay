@@ -1,4 +1,4 @@
-.PHONY: dev test build deploy clean help
+.PHONY: dev test build deploy clean help localnet-up localnet-down localnet-network localnet-identity deploy-local smoke-local
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -26,3 +26,40 @@ clean: ## Remove node_modules and build artifacts
 	rm -rf frontend/node_modules frontend/.next frontend/out
 	rm -rf backend/node_modules
 	rm -rf contracts/stellar-micropay-contract/target
+
+# ---------------------------------------------------------------------------
+# Local Stellar network (stellar/quickstart in standalone mode)
+# ---------------------------------------------------------------------------
+LOCAL_RPC_URL ?= http://localhost:8000/rpc
+LOCAL_PASSPHRASE ?= Standalone Network ; February 2017
+LOCAL_IDENTITY ?= local-admin
+
+localnet-up: ## Start a local Stellar network (Horizon, Soroban RPC, Friendbot) on :8000
+	docker compose --profile localnet up -d stellar
+	@echo "Waiting for the local network to become ready..."
+	@for i in $$(seq 1 60); do \
+		curl -sf http://localhost:8000/friendbot >/dev/null 2>&1 && curl -sf -X POST -H 'Content-Type: application/json' \
+			-d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' $(LOCAL_RPC_URL) | grep -q healthy && { echo "Local network ready."; exit 0; }; \
+		sleep 5; \
+	done; echo "Local network did not become ready in time." >&2; exit 1
+
+localnet-down: ## Stop the local Stellar network
+	docker compose --profile localnet stop stellar
+
+localnet-network: ## Register the "local" network with the Stellar CLI
+	stellar network add local --rpc-url "$(LOCAL_RPC_URL)" --network-passphrase "$(LOCAL_PASSPHRASE)" 2>/dev/null || true
+
+localnet-identity: localnet-network ## Create and fund the local deployer identity via Friendbot
+	stellar keys generate $(LOCAL_IDENTITY) --network local --fund 2>/dev/null || stellar keys fund $(LOCAL_IDENTITY) --network local
+
+deploy-local: localnet-identity ## Build, deploy and initialize the contract on the local network
+	rm -f .contract-id.local
+	STELLAR_IDENTITY=$(LOCAL_IDENTITY) ./scripts/deploy-contract.sh local
+	@echo "Contract ID saved to .contract-id.local"
+
+smoke-local: ## Run read-only smoke checks against the locally deployed contract
+	@test -s .contract-id.local || { echo "No .contract-id.local; run make deploy-local first." >&2; exit 1; }
+	stellar contract invoke --id "$$(cat .contract-id.local)" --source $(LOCAL_IDENTITY) --network local -- get_admin
+	stellar contract invoke --id "$$(cat .contract-id.local)" --source $(LOCAL_IDENTITY) --network local -- get_fee_bps
+	stellar contract invoke --id "$$(cat .contract-id.local)" --source $(LOCAL_IDENTITY) --network local -- is_frozen
+	@echo "Local smoke checks passed."

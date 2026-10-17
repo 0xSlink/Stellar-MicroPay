@@ -46,7 +46,16 @@ async function recordTip(req, res, next) {
 
 function getLeaderboard(req, res, next) {
   try {
-    res.json({ success: true, data: tipsService.getLeaderboard() });
+    const data = tipsService.getLeaderboard();
+    res.json({
+      success: true,
+      data: {
+        ...data,
+        topRecipients: data.recipients,
+        topSenders: data.senders,
+        totalTipped: data.totalXLM,
+      },
+    });
   } catch (err) { next(err); }
 }
 
@@ -158,6 +167,36 @@ async function getGlobalLeaderboard(req, res, next) {
   }
 }
 
+/**
+ * GET /api/tips/leaderboard/opt-out
+ * The authenticated account's leaderboard visibility (#1511).
+ */
+function getLeaderboardOptOut(req, res, next) {
+  try {
+    res.json({ success: true, data: tipsService.getLeaderboardOptOut(req.user.publicKey) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PUT /api/tips/leaderboard/opt-out
+ * Body: { optOut: boolean }. Applies only to the account in the JWT, so one
+ * user can never hide or expose another (#1511).
+ */
+function setLeaderboardOptOut(req, res, next) {
+  try {
+    const { optOut } = req.body || {};
+    if (typeof optOut !== "boolean") {
+      return res.status(400).json({ success: false, error: "optOut must be a boolean" });
+    }
+    const data = tipsService.setLeaderboardOptOut(req.user.publicKey, optOut);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   recordTip,
   getTipsReceived,
@@ -166,4 +205,6 @@ module.exports = {
   getTopTippers,
   getLeaderboard,
   getGlobalLeaderboard,
+  getLeaderboardOptOut,
+  setLeaderboardOptOut,
 };

@@ -27,17 +27,6 @@ services:
     networks:
       - backend
 
-  backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: always
-    networks:
-      - proxy
-
   frontend:
     build:
       context: ./frontend
@@ -72,14 +61,18 @@ services:
       - FEDERATION_DOMAINS=stellarmicropay.io,stellarmicropay.com
       - REDIS_URL=redis://redis:6379
       - ANALYTICS_CACHE_TTL_MS=300000
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - SERVER_PRIVATE_KEY_FILE=/run/secrets/server_private_key
+      - PAYMENT_SIGNING_SECRET_FILE=/run/secrets/payment_signing_secret
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     secrets:
       - jwt_secret
       - server_private_key
+      - payment_signing_secret
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -97,6 +90,8 @@ secrets:
     file: ./secrets/jwt_secret.txt
   server_private_key:
     file: ./secrets/server_private_key.txt
+  payment_signing_secret:
+    file: ./secrets/payment_signing_secret.txt
 
 networks:
   proxy:

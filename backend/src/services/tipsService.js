@@ -7,6 +7,18 @@
 "use strict";
 
 const usernameService = require("./usernameService");
+const { getLeaderboardOptOutStore } = require("../storage/leaderboardOptOutStore");
+
+/**
+ * Accounts that opted out of public leaderboards (#1511) are removed from
+ * every ranking the API returns: global recipients/senders and a creator's
+ * top tippers. Aggregate totals (tip count, total XLM) still include their
+ * tips, because a sum does not identify anyone and dropping them would make
+ * the totals disagree with the tips that actually happened.
+ */
+function isListed(publicKey) {
+  return !getLeaderboardOptOutStore().isOptedOut(publicKey);
+}
 
 // In-memory storage for tips
 // Structure: Map<creatorPublicKey, TipRecord[]>
@@ -196,6 +208,7 @@ function getLeaderboard() {
     ])
   );
   const ranked = (totals) => [...totals.entries()]
+    .filter(([publicKey]) => isListed(publicKey))
     .map(([publicKey, amount]) => ({ publicKey, federationName: federationNames.get(publicKey) || null, totalXLM: amount.toFixed(7) }))
     .sort((a, b) => Number(b.totalXLM) - Number(a.totalXLM))
     .slice(0, 10);
@@ -205,6 +218,18 @@ function getLeaderboard() {
 /**
  * Validate tip record input.
  */
+/** Whether `publicKey` has opted out of the public leaderboards (#1511). */
+function getLeaderboardOptOut(publicKey) {
+  const store = getLeaderboardOptOutStore();
+  return { publicKey, optedOut: store.isOptedOut(publicKey), optedOutAt: store.optedOutAt(publicKey) };
+}
+
+/** Opts `publicKey` in or out of the public leaderboards. Durable on return. */
+function setLeaderboardOptOut(publicKey, optOut) {
+  getLeaderboardOptOutStore().setOptOut(publicKey, Boolean(optOut));
+  return getLeaderboardOptOut(publicKey);
+}
+
 function validateTipInput(data) {
   const errors = [];
 
@@ -259,7 +284,9 @@ function getTopTippers(creatorPublicKey, limit = 5) {
   }
 
   // Convert to array
-  const entries = Array.from(totals.entries()).map(([senderPublicKey, totalAmount]) => ({
+  const entries = Array.from(totals.entries())
+    .filter(([senderPublicKey]) => isListed(senderPublicKey))
+    .map(([senderPublicKey, totalAmount]) => ({
     senderPublicKey,
     totalAmount: totalAmount.toFixed(7),
   }));
@@ -318,6 +345,7 @@ function getGlobalLeaderboard() {
   }
 
   const topRecipients = Array.from(recipientTotals.entries())
+    .filter(([address]) => isListed(address))
     .map(([address, totalXLM]) => ({
       address,
       federationName: null, // Could be resolved from federation service
@@ -339,6 +367,7 @@ function getGlobalLeaderboard() {
   }
 
   const topSenders = Array.from(senderTotals.entries())
+    .filter(([address]) => isListed(address))
     .map(([address, totalXLM]) => ({
       address,
       federationName: null, // Could be resolved from federation service
@@ -364,4 +393,7 @@ module.exports = {
   validateTipInput,
   getTopTippers,
   getGlobalLeaderboard,
+  getLeaderboardOptOut,
+  setLeaderboardOptOut,
+  _clearForTesting: () => tipsByCreator.clear(),
 };

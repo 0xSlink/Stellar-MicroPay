@@ -5,18 +5,20 @@
 
 "use strict";
 
-const crypto = require("crypto");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const morgan = require("morgan");
+const pinoHttp = require("pino-http");
+const crypto = require("node:crypto");
 const rateLimit = require("express-rate-limit");
 require("dotenv").config();
+const { csrfProtection } = require("./middleware/csrf");
 
 // ─── Env Validation ───────────────────────────────────────────────────────────
 // Must run immediately after dotenv so missing vars are caught before any
 // service or route module tries to use them.
-const { validateEnv } = require("./validateEnv");
+const { validateEnv, loadSecrets } = require("./config/validateEnv");
+loadSecrets();
 validateEnv();
 
 const accountRoutes = require("./routes/accounts");
@@ -33,6 +35,7 @@ const requestId = require("./middleware/requestId");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swagger");
 const { startTurretsServer } = require("./turretsServer");
+const logger = require("./logger");
 const { sanitizeRequest } = require("./middleware/sanitization");
 
 const app = express();
@@ -41,7 +44,7 @@ const PORT = process.env.PORT || 4000;
 /**
  * Attach a correlation id to every request: echo the caller's X-Request-ID
  * when supplied, otherwise generate one. The id is echoed back on the
- * response and available to morgan and the error handler.
+ * response and available to pino-http and the error handler.
  */
 function requestId(req, res, next) {
   const supplied = req.headers["x-request-id"];
@@ -52,13 +55,16 @@ function requestId(req, res, next) {
   res.setHeader("X-Request-ID", req.requestId);
   next();
 }
-
 // ─── Middleware ─────────────────────────────────────────────────────────────────
 
 app.use(requestId);
 app.use(helmet());
-morgan.token("request-id", (req) => req.requestId);
-app.use(morgan(":method :url :status :response-time ms requestId=:request-id"));
+app.use(
+  pinoHttp({
+    logger,
+    customProps: (req) => ({ requestId: req.requestId }),
+  }),
+);
 app.use(express.json({ limit: "10kb" }));
 
 // JSON parsing error handler
@@ -91,12 +97,17 @@ app.use(
       }
     },
     methods: ["GET", "POST", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID", "X-Idempotency-Key"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Request-ID",
+      "X-Idempotency-Key",
+    ],
     exposedHeaders: ["X-Request-ID", "X-Idempotency-Replayed"],
     credentials: true,
     optionsSuccessStatus: 204,
     maxAge: 600,
-  })
+  }),
 );
 
 // ─── CSRF Protection ────────────────────────────────────────────────────────
@@ -108,13 +119,6 @@ app.use((req, res, next) => {
   if (req.path.startsWith("/api/auth")) return next();
   return csrfProtection(req, res, next);
 });
-
-// ─── Routes ───────────────────────────────────────────────────────────────────
-
-app.use("/api/auth",     authRoutes);
-app.use("/api/accounts", accountRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/health",       healthRoutes);
 
 // Global rate limiting — 100 requests per 15 minutes per IP
 const limiter = rateLimit({
@@ -136,7 +140,8 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/turrets", turretsRoutes);
 app.use("/api/tips", tipsRoutes);
-app.use("/api/webhooks", webhookRoutes);
+app.use("/api/contacts", contactsRoutes);
+app.use("/api/webhooks", webhooksRoutes);
 app.use("/api/network", networkRoutes);
 app.use("/api/price-alerts", priceAlertsRoutes);
 app.use("/federation", federationRoutes);
@@ -146,14 +151,21 @@ app.use("/federation", federationRoutes);
 if (process.env.METRICS_ENABLED === "true") {
   const client = require("prom-client");
   client.collectDefaultMetrics();
-  app.get("/metrics", (req, res) => { res.set("Content-Type", client.register.contentType); res.end(client.register.metrics()); });
+  app.get("/metrics", (req, res) => {
+    res.set("Content-Type", client.register.contentType);
+    res.end(client.register.metrics());
+  });
 }
 
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: "Stellar MicroPay API Docs",
-  customCss: ".swagger-ui .topbar { display: none }",
-  swaggerOptions: { url: "/api/docs.json" },
-}));
+app.use(
+  "/api/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: "Stellar MicroPay API Docs",
+    customCss: ".swagger-ui .topbar { display: none }",
+    swaggerOptions: { url: "/api/docs.json" },
+  }),
+);
 
 app.get("/api/docs.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");
@@ -167,7 +179,7 @@ app.use((err, req, res, next) => {
   const status = err.status || 500;
   const message = err.message || "Internal Server Error";
 
-  console.error({ requestId: req.requestId, status, message });
+  req.log.error({ err, requestId: req.requestId, status }, "Request failed");
 
   res.status(status).json({ error: message });
 });
@@ -187,8 +199,13 @@ SERVER = "https://${domain}/federation"
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 if (require.main === module) {
+  // Refuse to start on an insecure configuration rather than serving traffic
+  // with a publicly-known signing key.
+  loadSecrets();
+  validateEnv();
+
   const server = app.listen(PORT, () => {
-    console.log(`
+    logger.info(`
   ✨ Stellar MicroPay API
   🚀 Server running at http://localhost:${PORT}
   🌐 Network: ${process.env.STELLAR_NETWORK || "testnet"}
@@ -198,7 +215,7 @@ if (require.main === module) {
   startTurretsServer();
 
   const shutdown = () => {
-    console.log("Shutting down... clearing timers.");
+    logger.info("Shutting down... clearing timers.");
     const { stopRunner } = require("./services/turretsService");
     stopRunner();
     server.close(() => {

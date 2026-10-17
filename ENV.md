@@ -1,58 +1,123 @@
-# Stellar MicroPay Environment Variables Reference
+# Environment Variables Reference
 
-This file documents all environment variables used by the Stellar MicroPay system. The system consists of an Express-based backend API service and a Next.js-based frontend web application.
+## Secrets Convention: \*\_FILE Variables
 
----
+The backend supports both plain environment variables and Docker-style \*\_FILE variables for sensitive configuration. This allows secrets to be mounted as files (e.g. from Docker Secrets or Kubernetes mounted volumes) without appearing in the environment or process inspection.
 
-## Backend Services (`backend/.env`)
+### How It Works
 
-These environment variables configure the backend Express application. Several variables are validated at startup to ensure service integrity.
+For each secret variable, the backend checks:
 
-| Variable Name | Default Value | Required | Read By | Purpose & Description |
-| :--- | :--- | :---: | :--- | :--- |
-| `PORT` | `4000` | No | Backend | The local port number the Express server runs on. |
-| `NODE_ENV` | `development` | No | Backend | Environment mode (`development`, `production`, `test`). |
-| `STELLAR_NETWORK` | `testnet` | **Yes** | Backend | Target Stellar network passphrase (`testnet` or `mainnet`). Verified at startup. |
-| `HORIZON_URL` | `https://horizon-testnet.stellar.org` | **Yes** | Backend | URL of the Horizon HTTP API server to interact with the Stellar blockchain. Verified at startup. |
-| `ALLOWED_ORIGINS` | `http://localhost:3000` | No | Backend | Comma-separated list of allowed CORS origins. |
-| `FEDERATION_DOMAIN` | `stellarmicropay.io` | No | Backend | The domain used for Stellar Federation (SEP-0001 / SEP-0002) lookups. |
-| `FEDERATION_DOMAINS` | `stellarmicropay.io,stellarmicropay.com` | No | Backend | Comma-separated list of secondary domains allowed for federation lookups. |
-| `FEDERATION_SERVER_URL`| *Derived* | No | Backend | Optional override URL of the federation server. Defaults to `https://<FEDERATION_DOMAIN>/federation`. |
-| `SENTRY_DSN` | *None* | No | Backend | Data Source Name for Sentry error tracking integration in the backend service. |
-| `REDIS_URL` | `redis://redis:6379` | No | Backend | Redis connection URL for the analytics cache. Leave unset to use the in-memory fallback (suitable for single-instance deployments). |
-| `ANALYTICS_CACHE_TTL_MS` | `300000` (5 min) | No | Backend | Cache TTL for analytics data in milliseconds. Controls how long cached results are considered fresh. |
+1. **Plain variable first** (e.g. `JWT_SECRET`) — if set, this value is used
+2. **File-based variable second** (e.g. `JWT_SECRET_FILE`) — if plain is not set, the backend reads the file path
 
----
+**Precedence:** Plain variables take precedence over \*\_FILE variables for backwards compatibility.
 
-## Frontend Services (`frontend/.env`)
+### Production Secrets
 
-These environment variables configure the Next.js React application. Client-exposed variables are prefixed with `NEXT_PUBLIC_`.
+Three secrets are required for production startup:
 
-| Variable Name | Default Value | Required | Read By | Purpose & Description |
-| :--- | :--- | :---: | :--- | :--- |
-| `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` | **Yes** | Frontend | Target Stellar network passphrase (`testnet` or `mainnet`) for client wallet interactions. Verified at startup. |
-| `NEXT_PUBLIC_HORIZON_URL` | `https://horizon-testnet.stellar.org` | **Yes** | Frontend | URL of the Horizon HTTP API server for frontend ledger queries. Verified at startup. |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:4000` | **Yes** | Frontend | The backend API server base URL where frontend requests are routed. Verified at startup. |
-| `NEXT_PUBLIC_CONTRACT_ID` | *None* | No | Frontend | Deployed Soroban Smart Contract ID used for recording client-side creator tips. |
-| `ANTHROPIC_API_KEY` | `your_anthropic_api_key_here` | No | Frontend | API Key for Anthropic Claude, powering the frontend AI Payment Assistant feature. |
-| `NEXT_PUBLIC_SENTRY_DSN` | *None* | No | Frontend | Client-side Sentry error tracking integration DSN. |
-| `SENTRY_AUTH_TOKEN` | *None* | No | Frontend | Sentry build-time auth token used for uploading source maps. |
+#### JWT_SECRET / JWT_SECRET_FILE
 
----
+- **Purpose:** Sign authentication tokens
+- **Generation:** `openssl rand -base64 32`
+- **Plain variable:** `export JWT_SECRET="..."`
+- **File variable:** `export JWT_SECRET_FILE="/run/secrets/jwt_secret"`
 
-## Cross-Reference & Correspondence
+#### SERVER_PRIVATE_KEY / SERVER_PRIVATE_KEY_FILE
 
-The table below describes how variables in the frontend correspond to or cross-reference variables in the backend:
+- **Purpose:** Stellar account private key for signing transactions
+- **Requirements:** Must be a valid Stellar secret key (starts with `S`)
+- **Plain variable:** `export SERVER_PRIVATE_KEY="SBXXXXXX..."`
+- **File variable:** `export SERVER_PRIVATE_KEY_FILE="/run/secrets/server_private_key"`
 
-| Frontend Variable | Backend Variable | Alignment Requirement |
-| :--- | :--- | :--- |
-| `NEXT_PUBLIC_STELLAR_NETWORK` | `STELLAR_NETWORK` | **Must align** (e.g., both set to `testnet` or `mainnet`) to ensure correct client-server blockchain synchronization. |
-| `NEXT_PUBLIC_HORIZON_URL` | `HORIZON_URL` | **Must align** to guarantee that both frontend operations and backend lookups query the same Horizon nodes. |
-| `NEXT_PUBLIC_API_URL` | `PORT` / Host | The frontend `NEXT_PUBLIC_API_URL` must point to the backend server URL (e.g., `http://localhost:4000` when backend `PORT` is `4000`). |
-| `NEXT_PUBLIC_SENTRY_DSN` | `SENTRY_DSN` | Should be linked to the same Sentry project or team workspace to centralize issue monitoring. |
+#### PAYMENT_SIGNING_SECRET / PAYMENT_SIGNING_SECRET_FILE
 
----
+- **Purpose:** Shared secret for verifying payment submission requests
+- **Generation:** `openssl rand -hex 32`
+- **Plain variable:** `export PAYMENT_SIGNING_SECRET="..."`
+- **File variable:** `export PAYMENT_SIGNING_SECRET_FILE="/run/secrets/payment_signing_secret"`
 
-## Key Rotation
+### Docker Compose Example
 
-For procedures on rotating `JWT_SECRET` and `SERVER_PRIVATE_KEY` without breaking active sessions, see [docs/key-rotation.md](docs/key-rotation.md).
+Using Docker Secrets with \*\_FILE variables:
+
+```yaml
+services:
+  backend:
+    environment:
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - SERVER_PRIVATE_KEY_FILE=/run/secrets/server_private_key
+      - PAYMENT_SIGNING_SECRET_FILE=/run/secrets/payment_signing_secret
+    secrets:
+      - jwt_secret
+      - server_private_key
+      - payment_signing_secret
+
+secrets:
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  server_private_key:
+    file: ./secrets/server_private_key.txt
+  payment_signing_secret:
+    file: ./secrets/payment_signing_secret.txt
+```
+
+### Kubernetes Example
+
+Using mounted secrets:
+
+```yaml
+env:
+  - name: JWT_SECRET_FILE
+    value: /var/run/secrets/jwt_secret
+  - name: SERVER_PRIVATE_KEY_FILE
+    value: /var/run/secrets/server_private_key
+  - name: PAYMENT_SIGNING_SECRET_FILE
+    value: /var/run/secrets/payment_signing_secret
+volumeMounts:
+  - name: jwt-secret
+    mountPath: /var/run/secrets/jwt_secret
+    subPath: jwt_secret
+  - name: key-secret
+    mountPath: /var/run/secrets/server_private_key
+    subPath: server_private_key
+  - name: payment-secret
+    mountPath: /var/run/secrets/payment_signing_secret
+    subPath: payment_signing_secret
+```
+
+### File Format
+
+Secret files should contain:
+
+- The secret value as plain text
+- Optional trailing whitespace (automatically trimmed)
+- No additional formatting or encoding
+
+Example:
+
+```bash
+# Create jwt_secret.txt
+echo -n "$(openssl rand -base64 32)" > secrets/jwt_secret.txt
+```
+
+### Error Messages
+
+If secrets are missing at startup, you'll see clear errors:
+
+```
+Environment validation failed:
+
+  - JWT_SECRET is required in production — set JWT_SECRET or JWT_SECRET_FILE. Used to sign authentication tokens. Generate with: openssl rand -base64 32
+  - SERVER_PRIVATE_KEY is required in production — set SERVER_PRIVATE_KEY or SERVER_PRIVATE_KEY_FILE. The Stellar account private key used to sign payment transactions. Must be a valid Stellar secret key (starts with S)
+  - PAYMENT_SIGNING_SECRET is required in production — set PAYMENT_SIGNING_SECRET or PAYMENT_SIGNING_SECRET_FILE. Generate with: openssl rand -hex 32
+```
+
+### Security Notes
+
+- Never commit actual secret values to the repository
+- Use `.gitignore` to exclude secret files
+- Rotate secrets periodically
+- In production clusters, use a secrets manager (HashiCorp Vault, AWS Secrets Manager, Kubernetes Secrets, etc.)
+- The backend only reads secrets at startup; changing secret files requires a restart

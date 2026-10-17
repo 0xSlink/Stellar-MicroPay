@@ -9,6 +9,8 @@
 #
 # The suite exits 0 when all Jest tests pass.
 # CI uses the integration-test job defined in .github/workflows/ci.yml.
+#
+# mock-horizon endpoints, fixtures and limitations: mock-horizon/README.md
 
 version: "3.9"
 
@@ -22,7 +24,7 @@ services:
     ports:
       - "8000:8000"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 5s
       timeout: 3s
       retries: 5

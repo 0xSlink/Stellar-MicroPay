@@ -11,15 +11,17 @@
     "lint": "eslint src/**/*.js"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "^17.1.0",
+    "@stellar/stellar-sdk": "^17.2.1",
     "axios": "1.20.0",
     "cors": "^2.8.5",
-    "dotenv": "^18.0.4",
+    "dotenv": "^18.0.7",
     "express": "^4.22.3",
-    "express-rate-limit": "^8.7.0",
+    "express-rate-limit": "^8.7.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0",
+    "pino": "^9.7.0",
+    "pino-http": "^10.4.0",
     "prom-client": "^15.1.3",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
@@ -30,7 +32,9 @@
     "eslint-plugin-rulesdir": "^0.2.2",
     "jest": "^30.5.1",
     "nodemon": "^3.1.2",
-    "supertest": "^7.2.2"
+    "supertest": "^7.3.0",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5"
   },
   "overrides": {
     "toml": "^4.2.0",
@@ -54,6 +58,12 @@
     "testEnvironment": "node",
     "testPathIgnorePatterns": [
       "<rootDir>/__tests__/.*\\.ts$"
-    ]
+    ],
+    "moduleNameMapper": {
+      "^@exodus/bytes/base32\\.js$": "<rootDir>/__mocks__/exodus-bytes-base32.js",
+      "^uint8array-extras$": "<rootDir>/__mocks__/uint8array-extras.js",
+      "^@noble/hashes/(.*)$": "<rootDir>/node_modules/@noble/hashes/$1",
+      "^@noble/ed25519$": "<rootDir>/__mocks__/noble-ed25519.js"
+    }
   }
 }

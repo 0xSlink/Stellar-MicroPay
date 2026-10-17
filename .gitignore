@@ -38,6 +38,7 @@ Thumbs.db
 *.user
 
 # ─── Misc ─────────────────────────────────────────────────────────────────────
+.worktrees/
 *.log
 .env
 dist/
@@ -49,8 +50,19 @@ test_snapshots
 
 # ─── Local scripts (never push) ───────────────────────────────────────────────
 scripts/create_issues.py
-\n# TypeScript build info\nfrontend/tsconfig.tsbuildinfo
-\n# Codex CI artifacts\n.codex-artifacts/
+
+# ─── Production Secrets (never push) ───────────────────────────────────────────
+secrets/
+!secrets/README.md
+
+# TypeScript build info
+frontend/tsconfig.tsbuildinfo
+
+# Codex CI artifacts
+.codex-artifacts/
 
 # ─── Persistent username store (Issue #1056) ────────────────────────────────
 backend/data/
+
+# Contract IDs written by `make deploy-local` (local network only)
+.contract-id.local

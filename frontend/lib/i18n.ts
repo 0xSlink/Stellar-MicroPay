@@ -13,15 +13,24 @@
 
 import en from "@/locales/en.json";
 import es from "@/locales/es.json";
+import ar from "@/locales/ar.json";
 
 /** Locales the app ships with. */
-export type Locale = "en" | "es";
+export type Locale = "en" | "es" | "ar" | "he";
 
 /** English is the default and the fallback for every missing key. */
 export const DEFAULT_LOCALE: Locale = "en";
 
 /** Every supported locale, in picker order. */
-export const SUPPORTED_LOCALES: readonly Locale[] = ["en", "es"];
+export const SUPPORTED_LOCALES: readonly Locale[] = ["en", "es", "ar"];
+
+/** Locales that use right-to-left layout (#1318). */
+export const RTL_LOCALES: readonly Locale[] = ["ar", "he"];
+
+/** Check whether a locale requires right-to-left (RTL) text direction (#1318). */
+export function isRTL(locale: string): boolean {
+  return (RTL_LOCALES as readonly string[]).includes(locale as Locale);
+}
 
 /** localStorage key holding the user's chosen locale. */
 export const LOCALE_STORAGE_KEY = "stellar-micropay:locale";
@@ -30,6 +39,8 @@ export const LOCALE_STORAGE_KEY = "stellar-micropay:locale";
 export const LOCALE_LABELS: Record<Locale, string> = {
   en: "English",
   es: "Español",
+  ar: "العربية",
+  he: "עברית",
 };
 
 /** Values substituted into `{placeholder}` tokens. */
@@ -43,13 +54,15 @@ type MessageTree = Record<string, unknown>;
 const MESSAGES: Record<Locale, MessageTree> = {
   en: en as MessageTree,
   es: es as MessageTree,
+  ar: ar as MessageTree,
+  he: en as MessageTree, // Hebrew falls back to English strings with RTL direction
 };
 
 /** Narrow an unknown value (e.g. a localStorage entry) to a supported locale. */
 export function isLocale(value: unknown): value is Locale {
   return (
     typeof value === "string" &&
-    (SUPPORTED_LOCALES as readonly string[]).includes(value)
+    (["en", "es", "ar", "he"] as readonly string[]).includes(value)
   );
 }
 
@@ -134,8 +147,9 @@ export function setStoredLocale(locale: Locale): void {
   }
 }
 
-/** Keep `<html lang>` in sync so screen readers use the right pronunciation. */
+/** Keep `<html lang>` and `<html dir>` in sync so screen readers and layout respect RTL locales (#1318). */
 export function applyDocumentLocale(locale: Locale): void {
   if (typeof document === "undefined") return;
   document.documentElement.lang = locale;
+  document.documentElement.dir = isRTL(locale) ? "rtl" : "ltr";
 }

@@ -10,15 +10,39 @@ The AI Payment Assistant is an intelligent feature that allows users to describe
 - **Form Pre-filling**: Seamlessly integrates with the existing SendPaymentForm
 - **Floating Button**: Accessible from anywhere on the dashboard
 - **Error Handling**: Graceful fallbacks and user-friendly error messages
+- **Degraded Mode**: Clear messaging when the AI service is unavailable
+
+## Architecture
+
+### Frontend (Static Export)
+
+The frontend is deployed as a static export (Next.js `output: "export"`). The AI Payment Assistant component (`frontend/components/AIPaymentAssistant.tsx`) requests the parsing endpoint from the Express backend at `{NEXT_PUBLIC_API_URL}/api/parse-payment`.
+
+When the endpoint is unreachable, the assistant displays a degraded-mode message encouraging users to fill in payment details manually.
+
+### Backend (Express)
+
+The Express backend provides the `/api/v1/parse-payment` endpoint (`backend/src/routes/aiPayment.ts`), which:
+
+- Accepts POST requests with natural language input
+- Uses Claude Haiku model for parsing
+- Returns structured payment data
+- Handles validation and error cases
+- Requires `ANTHROPIC_API_KEY` environment variable
+
+### Production Setup
+
+In production, the frontend static files are served by nginx, and the backend Express API runs as a separate service. The frontend calls the backend API URL (configured via `NEXT_PUBLIC_API_URL`) for all dynamic requests, including payment parsing.
 
 ## How It Works
 
 1. **User clicks the floating AI button** (✨ sparkles icon in bottom-right)
 2. **Types natural language** like "Send 50 XLM to GABC123... for design work"
-3. **Claude AI parses the intent** and extracts structured payment data
-4. **User confirms the details** in a clean preview interface
-5. **Payment form gets pre-filled** automatically
-6. **User can review and submit** the payment normally
+3. **Frontend sends request to Express backend** at `/api/v1/parse-payment`
+4. **Claude AI parses the intent** and extracts structured payment data
+5. **User confirms the details** in a clean preview interface
+6. **Payment form gets pre-filled** automatically
+7. **User can review and submit** the payment normally
 
 ## Example Inputs
 
@@ -36,7 +60,13 @@ The AI assistant can understand various natural language formats:
 
 ### Environment Variables
 
-Add your Anthropic API key to your `.env.local` file:
+**Frontend (`frontend/.env.local`)**:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:4000  # or your backend URL
+```
+
+**Backend (`backend/.env`)**:
 
 ```bash
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
@@ -44,11 +74,27 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 ### API Endpoint
 
-The assistant uses the `/api/parse-payment` endpoint which:
-- Accepts POST requests with natural language input
-- Uses Claude Haiku model for parsing
-- Returns structured payment data
-- Handles validation and error cases
+**Endpoint**: `POST /api/v1/parse-payment` (on the Express backend)
+
+**Request**:
+
+```json
+{
+  "input": "Send 50 XLM to GABC123 for design work"
+}
+```
+
+**Response**:
+
+```json
+{
+  "amount": "50 XLM",
+  "recipient": "GABC123",
+  "memo": "design work",
+  "isValid": true,
+  "clarification": ""
+}
+```
 
 ## Technical Implementation
 
@@ -56,7 +102,7 @@ The assistant uses the `/api/parse-payment` endpoint which:
 
 1. **AIPaymentAssistant.tsx** - Main modal component
 2. **FloatingAssistantButton** - Floating action button
-3. **parse-payment.ts** - API endpoint for Claude integration
+3. **backend/src/routes/aiPayment.ts** - Express endpoint for Claude integration
 
 ### Integration Points
 
@@ -66,33 +112,46 @@ The assistant uses the `/api/parse-payment` endpoint which:
 
 ### Error Handling
 
-The assistant handles various error scenarios:
-- Invalid or missing API key
-- Network failures
-- Ambiguous payment descriptions
-- Invalid Stellar addresses
-- Missing required fields
+The assistant handles various error scenarios gracefully:
+
+- **Missing or invalid API key**: Shows degraded-mode message
+- **Network failures**: Displays "AI assistant is currently unavailable" with fallback instructions
+- **Ambiguous payment descriptions**: Asks clarifying questions
+- **Invalid Stellar addresses**: Flags during parsing
+- **Missing required fields**: Prompts user for additional information
+
+## Degraded Mode
+
+If the Express backend is unreachable or the Anthropic API is not configured:
+
+- The assistant displays an error message
+- Users are encouraged to fill in payment details manually
+- The UI remains functional and non-blocking
+- No errors are thrown to the application
 
 ## Usage Examples
 
 ### Basic Payment
+
 ```
 Input: "Send 50 XLM to GABC123 for design work"
-Output: 
+Output:
 - Amount: "50 XLM"
 - Recipient: "GABC123"
 - Memo: "design work"
 ```
 
 ### Incomplete Information
+
 ```
 Input: "Pay Alice for the job"
-Output: 
+Output:
 - Clarification: "What amount should be sent?"
 - Shows retry interface
 ```
 
 ### Multiple Recipients (Not Supported)
+
 ```
 Input: "Send 50 XLM to Alice and 30 XLM to Bob"
 Output:
@@ -108,6 +167,7 @@ npm test AIPaymentAssistant.test.tsx
 ```
 
 Tests cover:
+
 - Component rendering
 - User interactions
 - API integration
@@ -117,6 +177,7 @@ Tests cover:
 ## Accessibility
 
 The AI assistant is fully accessible:
+
 - Keyboard navigation support
 - Screen reader compatible
 - ARIA labels and roles
@@ -129,12 +190,3 @@ The AI assistant is fully accessible:
 - Minimal bundle size impact
 - Efficient state management
 - Optimized re-renders
-
-## Future Enhancements
-
-Potential improvements:
-- Support for multiple currencies
-- Batch payment processing
-- Voice input integration
-- Payment templates and shortcuts
-- Advanced parsing for complex scenarios

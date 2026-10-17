@@ -12,6 +12,7 @@ const express = require("express");
 const jwt     = require("jsonwebtoken");
 const { Utils, Keypair } = require("@stellar/stellar-sdk");
 const { JWT_SECRET } = require("../middleware/auth");
+const { setCsrfCookie } = require("../middleware/csrf");
 const {
   authChallengeLimiter,
   authVerifyLimiter,
@@ -99,5 +100,11 @@ function verifyChallenge(req, res) {
 // Keep the original endpoint available while clients migrate to /verify.
 router.post("/verify", authVerifyLimiter, verifyChallenge);
 router.post("/", authVerifyLimiter, verifyChallenge);
+
+// GET /api/auth/csrf — issue a readable double-submit token.
+router.get("/csrf", (req, res) => {
+  const csrfToken = setCsrfCookie(res);
+  res.json({ csrfToken });
+});
 
 module.exports = router;
