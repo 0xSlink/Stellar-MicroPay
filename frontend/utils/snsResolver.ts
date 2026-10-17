@@ -3,11 +3,14 @@ import { logger } from './logger';
 const SNS_API_ENDPOINT = process.env.NEXT_PUBLIC_SNS_API || 'https://api.stellarnameservice.org/resolve';
 
 export async function resolveSNSDomain(domain: string): Promise<string | null> {
-  if (!domain || !domain.endsWith('.xlm')) {
+  if (typeof domain !== 'string') {
     return null;
   }
 
   const cleanDomain = domain.trim().toLowerCase();
+  if (cleanDomain.length <= '.xlm'.length || !cleanDomain.endsWith('.xlm')) {
+    return null;
+  }
   
   try {
     const response = await fetch(`${SNS_API_ENDPOINT}?domain=${encodeURIComponent(cleanDomain)}`, {
