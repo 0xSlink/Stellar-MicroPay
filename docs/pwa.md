@@ -15,14 +15,19 @@ Web App Manifest that defines:
 - Short name: "MicroPay"
 - Display mode: standalone (hides browser UI)
 - Theme color: #7B3FE4 (Stellar purple)
-- Icons: 192x192 and 512x512
+- Icons: 192x192 and 512x512, each with **separate `purpose: "any"` and `purpose: "maskable"` entries** (#1473). See [Icon purpose: any vs maskable](#icon-purpose-any-vs-maskable-1473).
 
 ### 2. **frontend/public/sw.js**
 Service Worker that handles:
-- Caching of static assets (home page, dashboard, favicon, manifest)
+- Caching of static assets (home page, dashboard, favicon, manifest, icons, offline page)
 - Network-first strategy with cache fallback
-- Offline support for previously visited pages
+- Offline support for previously visited pages, plus a branded
+  [`offline.html`](#offline-fallback-page-1474) catch-all for failed navigations (#1474)
+- Runtime caching is **excluded for price APIs** (CoinGecko) — see
+  [Runtime caching policy](#runtime-caching-policy-1472)
 - Cache versioning and cleanup
+- Update detection: a waiting worker is activated only via a
+  user-confirmed prompt (#1475) — see [Update prompt](#update-prompt-skip-waiting-1475)
 
 ### 3. **frontend/pages/_document.tsx**
 Custom Next.js document with:
@@ -73,6 +78,38 @@ The manifest.json references PNG icons. You have two options:
 Design your own icons and save as:
 - `public/icon-192.png`
 - `public/icon-512.png`
+
+## Icon Purpose: any vs Maskable (#1473)
+
+The two PNG icons are declared with `"purpose": "any"` (fill the canvas, used
+wherever an icon is shown) and two dedicated maskable variants are declared
+with `"purpose": "maskable"`:
+
+- `public/maskable-icon-192.png` / `public/maskable-icon-512.png`
+  (with matching `public/maskable-icon-*.svg` sources)
+- Both manifest entries per size are **separate** — the combined
+  `"any maskable"` purpose was removed, because one file cannot be optimized
+  for both: a maskable icon needs full-bleed art inside the safe zone while
+  an `any` icon fills the canvas (previously installed icons could be cropped
+  or letterboxed).
+
+### Maskable safe-zone rules
+
+1. The gradient background extends to the full canvas — launchers may crop it
+   to a circle, rounded square or squircle, so there are **no rounded
+   corners** in the maskable variants.
+2. All logo content stays inside the safe zone: a centered circle with a
+   radius of 40% of the icon size (76.8px for 192, 204.8px for 512). The
+   diamond's farthest vertices sit at ~30% of the icon size from center, well
+   within the zone.
+
+### Verify the maskable icons
+
+Use a masking preview tool (e.g. https://webimageresizer.com/pwa-maskable-icon-generator
+or the "Field Trial icons" checker) or compute the safe zone on a grid
+overlay: import `maskable-icon-512.png`, preview circle/squircle masks, and
+confirm the logo is never cropped. Also re-run the Lighthouse PWA audit — it
+should no longer flag combined icon purposes.
 
 ## Testing PWA Features
 
@@ -131,21 +168,140 @@ The service worker uses a **network-first with cache fallback** strategy:
 1. Try to fetch from network
 2. If successful, cache the response and return it
 3. If network fails, serve from cache
-4. For HTML pages, fallback to cached home page
+4. For HTML pages, fallback to the branded offline page
 
 This ensures:
 - Users always get fresh content when online
 - App works offline with last cached version
 - Graceful degradation
 
+## Runtime Caching Policy (#1472)
+
+Rule of thumb: **never let the service worker serve stale data that the UI
+presents as current.**
+
+### Price APIs — excluded from runtime caching
+
+`api.coingecko.com` was removed from `RUNTIME_CACHE_HOSTS`. Under a
+network-first SW cache, a price fetched once and then served from the cache
+while offline (or while the API was slow) would be shown on the dashboard and
+trade pages as if it were the USD price *right now* — silently misleading
+users making USD-denominated decisions (send amounts, balances, sell offers).
+
+Instead, price handling lives entirely in the app layer (`frontend/lib/price.ts`):
+- A 60-second in-memory cache (fresh by design, never persisted)
+- `null` on failure so the UI renders "price unavailable" instead of a number
+
+Because the SW no longer intercepts these requests, a cached price can never
+be presented without an explicit absence of freshness. If an offline-time
+"as of <time>" staleness label is ever wanted, it must come from the app
+layer where the fetch timestamp is known.
+
+### Horizon — kept in runtime cache, reviewed under the same lens
+
+`horizon-testnet.stellar.org` and `horizon.stellar.org` remain in
+`RUNTIME_CACHE_HOSTS` (network-first). Review outcome:
+- Account/balance responses are network-first, so they are only ever served
+  from cache when the network is unreachable — an explicit offline state, not
+  a silent staleness. UI built on Horizon calls already handles unreachable
+  network states (error / retry surfaces).
+- Unlike prices, a last-known balance is not "wrong" in a misleading way: any
+  send/confirm operation requires a live Horizon round-trip, which fails
+  loudly offline. Caching therefore only improves dashboard resilience.
+
+If the app ever renders Horizon-derived data as *current market/fund state*
+without a live connection check, revisit this section and exclude that
+endpoint too.
+
+### Other runtime-cached hosts
+
+Same-origin static assets (`self.location.hostname`, `localhost`,
+`127.0.0.1`) remain runtime-cached network-first — they are immutable app
+shell content, version-bumped via `CACHE_VERSION` on deploy.
+
+## Update Prompt (Skip Waiting) (#1475)
+
+`CACHE_VERSION` names the caches (`stellar-micropay-precache-vX` /
+`stellar-micropay-runtime-vX`), but a new worker installs into *waiting* by
+default and only takes over once every tab is closed — which could leave
+users running a stale app shell (potentially with payment bugs) for days.
+The app therefore prompts when an update is waiting:
+
+1. Deploy changes → the browser re-downloads `/sw.js` byte-diff and installs
+   the new worker in the *waiting* state (install no longer calls
+   `skipWaiting()`).
+2. `components/ServiceWorkerUpdateToast.tsx` (mounted once inside
+   `ToastProvider` in `_app.tsx`) detects `registration.waiting` while
+   `navigator.serviceWorker.controller` exists, and shows a translated toast:
+   *"A new version is available" — [Reload]*
+3. Accepting posts `{ type: "SKIP_WAITING" }` to the worker; the SW's
+   `message` handler calls `self.skipWaiting()`, the worker activates, and
+   its `clients.claim()` fires `controllerchange` in the page — the page
+   reloads **once** (guarded by a user-accepted flag so a first-install
+   activation never reloades).
+4. Dismissing (the toast auto-dismisses after 10s) defers the update. The
+   component lives in the persistent `_app` tree, so no new prompt fires on
+   client-side navigation; the user is re-prompted only after a real reload
+   or a new tab.
+
+Strings live in `locales/*.json` under the `pwaUpdate` key (`available`,
+`reload`) for en/es/ar (with English fallback elsewhere).
+
+### Manual test recipe
+
+1. Run `cd frontend && npm run dev`, open the app, and let the SW activate.
+2. Edit `frontend/public/sw.js` (e.g. bump `CACHE_VERSION` to `"v4"`).
+3. Reload the page (browser update check re-runs on navigation/`updatefound`).
+4. The update toast appears with a **Reload** button.
+5. Click Reload → the page reloads exactly once and DevTools →
+   Application → Service Workers shows the new worker **active and
+   activated** with no second reload.
+6. Repeat 2–3, but dismiss/wait out the toast instead: the update activates
+   only when all tabs close, and no toast re-appears while navigating.
+
+## Offline Fallback Page (#1474)
+
+Navigations to routes that were never cached previously surfaced the
+browser's default error page — jarring inside an installed PWA.
+`frontend/public/offline.html` is now precached and served as the catch-all
+fallback when online navigation fails:
+
+- Branded (Stellar purple gradient, diamond logo, dark theme matching
+  `manifest.json` colors) and fully self-contained: inline styles, no
+  external requests.
+- The explanation and retry label are translated via an inline script that
+  reads `navigator.language` (English, Spanish, Arabic; English fallback) and
+  sets `<html lang/dir>` for RTL.
+- **Retry** reloads the failed navigation, and the page auto-reloads when the
+  `online` event fires — both only succeed once connectivity returns.
+
+`handleNavigation` fallback order: cached copy of the exact URL →
+`offline.html`.
+
+### Manual test recipe
+
+1. Serve the app over HTTPS (or localhost) and visit a few routes online.
+2. Visit a route you have **not** opened before.
+3. Go offline (DevTools → Network → Offline, or Airplane mode) and open
+   another uncached route (e.g. a deep link).
+4. The branded offline page renders — not the browser error page.
+5. Disable the offline override: the auto-reload (or clicking **Retry**)
+   brings back the requested page.
+6. Sanity check: with the browser language set to Spanish or Arabic, the
+   offline page shows the translated text (Arabic switches the page to RTL).
+
 ## Cache Versioning
 
-The cache name includes a version number: `micropay-v1`
+The cache names are versioned: `stellar-micropay-precache-vX` and
+`stellar-micropay-runtime-vX` (`CACHE_VERSION` in `sw.js`).
+
+On activate, any `stellar-micropay-*` cache that is not current is deleted.
 
 To update cached assets after deployments:
-1. Change `CACHE_NAME` in `sw.js` (e.g., to `micropay-v2`)
-2. Old cache will be automatically deleted on next load
-3. New assets will be cached
+1. Change `CACHE_VERSION` in `sw.js` (e.g., to `stellar-micropay-precache-v4`)
+2. The new install precaches the current `APP_SHELL_URLS`
+3. Old caches will be automatically deleted on next activation
+4. Users of open tabs get the update prompt above
 
 ## Customization
 

@@ -11,12 +11,23 @@ export interface ToastProps {
   type?: "success" | "error" | "info";
   onClose?: () => void;
   duration?: number;
+  /** Optional inline action button, e.g. "Reload" on the update prompt. */
+  action?: ToastAction;
 }
 
-export default function Toast({ message, type = "info", onClose, duration = 3000 }: ToastProps) {
+/** Clickable action rendered inside a toast. */
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
+export default function Toast({ message, type = "info", onClose, duration = 3000, action }: ToastProps) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    // A duration of 0 (or less) keeps the toast on screen until replaced.
+    if (duration <= 0) return;
+
     const timer = setTimeout(() => {
       setVisible(false);
       if (onClose) {
@@ -53,6 +64,18 @@ export default function Toast({ message, type = "info", onClose, duration = 3000
           </svg>
         )}
         {message}
+        {action && (
+          <button
+            type="button"
+            onClick={() => {
+              if (onClose) onClose();
+              action.onClick();
+            }}
+            className="ml-1 rounded-lg border border-white/30 px-3 py-1.5 text-sm font-semibold transition-colors hover:bg-white/10"
+          >
+            {action.label}
+          </button>
+        )}
       </div>
     </div>
   );

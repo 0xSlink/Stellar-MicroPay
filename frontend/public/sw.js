@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const PRECACHE = `stellar-micropay-precache-${CACHE_VERSION}`;
 const RUNTIME = `stellar-micropay-runtime-${CACHE_VERSION}`;
 
@@ -9,6 +9,9 @@ const APP_SHELL_URLS = [
   "/favicon.svg",
   "/icon-192.png",
   "/icon-512.png",
+  "/maskable-icon-192.png", // maskable icon variants (#1473)
+  "/maskable-icon-512.png",
+  "/offline.html", // branded offline fallback for failed navigations (#1474)
 ];
 
 const RUNTIME_CACHE_HOSTS = new Set([
@@ -17,7 +20,10 @@ const RUNTIME_CACHE_HOSTS = new Set([
   "127.0.0.1",
   "horizon-testnet.stellar.org",
   "horizon.stellar.org",
-  "api.coingecko.com",
+  // api.coingecko.com is intentionally NOT runtime-cached (#1472): a price
+  // served stale from the SW looks current to users making USD-denominated
+  // decisions. Freshness is instead handled in the app layer
+  // (lib/price.ts: 60s in-memory TTL + graceful "price unavailable").
 ]);
 
 function isCacheableResponse(response) {
@@ -56,9 +62,12 @@ async function handleNavigation(request) {
     }
     return response;
   } catch {
+    // Online navigation failed. Serve the cached page if we have one,
+    // otherwise fall back to the branded offline page (#1474) instead of
+    // surfacing the browser's default error page.
     return (
       (await caches.match(request)) ||
-      (await caches.match("/")) ||
+      (await caches.match("/offline.html")) ||
       Response.error()
     );
   }
@@ -68,7 +77,11 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(PRECACHE).then((cache) => cache.addAll(APP_SHELL_URLS))
   );
-  self.skipWaiting();
+  // No automatic skipWaiting here (#1475): a newly installed worker stays in
+  // "waiting" until the page confirms the "new version available" prompt
+  // (components/ServiceWorkerUpdateToast.tsx, mounted from _app.tsx) by
+  // posting a SKIP_WAITING message below. This keeps the reload under user
+  // control instead of freezing a stale app shell until every tab closes.
 });
 
 self.addEventListener("activate", (event) => {
@@ -88,6 +101,15 @@ self.addEventListener("activate", (event) => {
       )
       .then(() => self.clients.claim())
   );
+});
+
+// Message handler for the update prompt (#1475): the page posts
+// { type: "SKIP_WAITING" } when the user accepts the reload prompt, letting
+// the waiting worker take over so the page can reload once.
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {
