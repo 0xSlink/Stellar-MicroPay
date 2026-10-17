@@ -4,6 +4,7 @@
  * 
  * MIGRATION NOTE: This file now uses Intl-based formatters from intlFormatters.ts
  * for better internationalization support. The API remains backward compatible.
+ * See docs/intl-formatting.md for which helpers to use in new code.
  */
 
 import { PaymentRecord } from "@/lib/stellar";

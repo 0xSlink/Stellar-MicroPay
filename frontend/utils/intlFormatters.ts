@@ -5,6 +5,7 @@
  * All formatters respect user locale, timezone, and accessibility requirements.
  * 
  * These replace hard-coded toFixed(), English-only date strings, and provider-dependent formatting.
+ * Usage guide: docs/intl-formatting.md
  */
 
 // ─── Locale Management ──────────────────────────────────────────────────────
