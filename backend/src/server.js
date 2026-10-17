@@ -17,7 +17,8 @@ const { csrfProtection } = require("./middleware/csrf");
 // ─── Env Validation ───────────────────────────────────────────────────────────
 // Must run immediately after dotenv so missing vars are caught before any
 // service or route module tries to use them.
-const { validateEnv } = require("./validateEnv");
+const { validateEnv, loadSecrets } = require("./config/validateEnv");
+loadSecrets();
 validateEnv();
 
 const accountRoutes = require("./routes/accounts");
@@ -63,7 +64,7 @@ app.use(
   pinoHttp({
     logger,
     customProps: (req) => ({ requestId: req.requestId }),
-  })
+  }),
 );
 app.use(express.json({ limit: "10kb" }));
 
@@ -97,12 +98,17 @@ app.use(
       }
     },
     methods: ["GET", "POST", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID", "X-Idempotency-Key"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Request-ID",
+      "X-Idempotency-Key",
+    ],
     exposedHeaders: ["X-Request-ID", "X-Idempotency-Replayed"],
     credentials: true,
     optionsSuccessStatus: 204,
     maxAge: 600,
-  })
+  }),
 );
 
 // ─── CSRF Protection ────────────────────────────────────────────────────────
@@ -146,14 +152,21 @@ app.use("/federation", federationRoutes);
 if (process.env.METRICS_ENABLED === "true") {
   const client = require("prom-client");
   client.collectDefaultMetrics();
-  app.get("/metrics", (req, res) => { res.set("Content-Type", client.register.contentType); res.end(client.register.metrics()); });
+  app.get("/metrics", (req, res) => {
+    res.set("Content-Type", client.register.contentType);
+    res.end(client.register.metrics());
+  });
 }
 
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: "Stellar MicroPay API Docs",
-  customCss: ".swagger-ui .topbar { display: none }",
-  swaggerOptions: { url: "/api/docs.json" },
-}));
+app.use(
+  "/api/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: "Stellar MicroPay API Docs",
+    customCss: ".swagger-ui .topbar { display: none }",
+    swaggerOptions: { url: "/api/docs.json" },
+  }),
+);
 
 app.get("/api/docs.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");
@@ -189,6 +202,7 @@ SERVER = "https://${domain}/federation"
 if (require.main === module) {
   // Refuse to start on an insecure configuration rather than serving traffic
   // with a publicly-known signing key.
+  loadSecrets();
   validateEnv();
 
   const server = app.listen(PORT, () => {
