@@ -80,6 +80,12 @@ npm run dev
 cd backend
 npm install
 cp .env.example .env
+# Generate required secrets:
+# For JWT_SECRET:
+openssl rand -base64 32 > jwt_secret.txt
+# For PAYMENT_SIGNING_SECRET:
+openssl rand -hex 32 > payment_secret.txt
+# Then paste these values into .env where indicated
 npm run dev
 ```
 
@@ -116,6 +122,7 @@ chore/what-you-cleaned-up
 ```
 
 Example:
+
 ```bash
 git checkout -b feature/qr-code-payments
 ```
@@ -136,6 +143,7 @@ chore: upgrade stellar-sdk to latest
 ## 🔃 Submitting a Pull Request
 
 1. **Push your branch** to your fork:
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -198,6 +206,7 @@ Look for issues tagged `good first issue` — these are beginner-friendly tasks!
 ## 💬 Community & Discussion
 
 Have questions, ideas, or want to discuss contributions? Join our community channels:
+
 - **Discord**: Join our Discord server and head over to the [#greenpay](https://discord.gg/greenpay) channel.
 - **Telegram**: Join the [GreenPay Community](https://t.me/greenpay_community) Telegram group.
 - **GitHub Discussions**: Share ideas, propose RFCs, or ask questions on our GitHub Discussions board.
@@ -209,6 +218,7 @@ Have questions, ideas, or want to discuss contributions? Join our community chan
 We participate in [Hacktoberfest](https://hacktoberfest.com/) every year throughout September and October! Hacktoberfest encourages open-source contributions from developers of all skill levels.
 
 ### How to Participate:
+
 1. Register on the official [Hacktoberfest website](https://hacktoberfest.com/).
 2. Look for issues labeled with `hacktoberfest`, `good-first-issue`, or `intermediate`.
 3. Fork the repository, create a descriptive branch, implement your changes, and make sure tests pass.
@@ -216,6 +226,7 @@ We participate in [Hacktoberfest](https://hacktoberfest.com/) every year through
 5. Maintainers will review your PR and apply the `hacktoberfest-accepted` label once approved.
 
 ### Quality Standards:
+
 - We value quality over quantity. Spammy PRs, minor whitespace-only edits, or automated bot submissions will be marked as `invalid` or `spam`.
 - Always include automated unit/integration tests for any logic or bug fixes.
 - Follow our established coding style, linting rules, and conventional commit guidelines.
@@ -223,6 +234,7 @@ We participate in [Hacktoberfest](https://hacktoberfest.com/) every year through
 ### 📋 Curated Hacktoberfest Issues (20+ Beginner & Intermediate Tasks)
 
 #### Beginner-Friendly (`hacktoberfest`, `good-first-issue`):
+
 1. **#1322**: Add documentation & usage examples for SEP-0002 federation lookups in `docs/federation.md`.
 2. **#1323**: Add tooltips explaining Stroop amounts (1 XLM = 10,000,000 stroops) in `TransactionList.tsx`.
 3. **#1324**: Expand Arabic locale translations for payment error toasts in `locales/ar.json`.
@@ -235,6 +247,7 @@ We participate in [Hacktoberfest](https://hacktoberfest.com/) every year through
 10. **#1331**: Add backend health check status indicator to frontend footer.
 
 #### Intermediate (`hacktoberfest`, `intermediate`):
+
 11. **#1332**: Implement exponential backoff retry for Soroban RPC transaction simulation.
 12. **#1333**: Add integration tests for reverse federation `type=id` lookups with mocked Horizon.
 13. **#1334**: Add client-side CSV export date range and asset type filter in `csv-export.ts`.
