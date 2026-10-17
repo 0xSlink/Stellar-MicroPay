@@ -106,6 +106,10 @@ export default function OnboardingTour({ isVisible, onComplete, onSkip }: Onboar
     }
   };
 
+  const handleBack = () => {
+    setCurrentStep((stepIndex) => Math.max(0, stepIndex - 1));
+  };
+
   const handleSkip = () => {
     onSkip();
   };
@@ -133,6 +137,13 @@ export default function OnboardingTour({ isVisible, onComplete, onSkip }: Onboar
             <span className="text-xs text-gray-500">
               {currentStep + 1} of {tourSteps.length}
             </span>
+            <button
+              onClick={handleBack}
+              disabled={currentStep === 0}
+              className="text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Back
+            </button>
             <button
               onClick={handleNext}
               className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
