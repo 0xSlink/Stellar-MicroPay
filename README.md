@@ -240,6 +240,8 @@ docker pull ghcr.io/emmy123222/stellar-micropay-backend:latest
 docker pull ghcr.io/emmy123222/stellar-micropay-frontend:latest
 ```
 
+To run the stack locally, see the [Docker Compose matrix](docs/deployment.md#compose-matrix). It covers which compose file to use for dev, test, staging and prod.
+
 ### Manual Setup
 
 1. Install Rust and Soroban SDK
@@ -274,6 +276,7 @@ docker pull ghcr.io/emmy123222/stellar-micropay-frontend:latest
 - [📖 Stellar & Soroban Glossary](GLOSSARY.md) — Plain-English guide to Stellar and Soroban terminology (XLM, stroops, ledgers, sequence numbers, Horizon, Soroban, XDR, Freighter, SEP-0007, SEP-0010, trustlines, federation, and turrets).
 - [🤝 Contributing Guide](CONTRIBUTING.md) — Guidelines for contributing and setting up the development environment.
 - [🚀 Deployment Guide](DEPLOYMENT_GUIDE.md) — Instructions for deploying to production.
+- [🐳 Docker Compose matrix](docs/deployment.md#compose-matrix) — Which compose file and Dockerfile to use for dev, test, staging and prod, with required secrets, up commands and known issues.
 - [📚 Technical Architecture & Docs](docs/) — Detailed documentation on architecture, Ledger hardware wallet support, Turrets, analytics, and APIs.
 
 ## 💬 Community & Discussion
