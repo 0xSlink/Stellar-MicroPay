@@ -55,7 +55,8 @@ export default function AIPaymentAssistant({
     setParsedIntent(null);
 
     try {
-      const response = await fetch("/api/parse-payment", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const response = await fetch(`${apiUrl}/api/parse-payment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +71,9 @@ export default function AIPaymentAssistant({
       const intent: PaymentIntent = await response.json();
       setParsedIntent(intent);
     } catch (err) {
-      setError("Failed to parse your request. Please try again.");
+      setError(
+        "AI assistant is currently unavailable. Please fill in the payment details manually.",
+      );
       console.error("Payment parsing error:", err);
     } finally {
       setIsLoading(false);
@@ -103,7 +106,10 @@ export default function AIPaymentAssistant({
         className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl animate-slide-up"
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 id="ai-assistant-title" className="font-display text-lg font-semibold text-white flex items-center gap-2">
+          <h3
+            id="ai-assistant-title"
+            className="font-display text-lg font-semibold text-white flex items-center gap-2"
+          >
             <SparklesIcon className="w-5 h-5 text-stellar-400" />
             AI Payment Assistant
           </h3>
@@ -117,9 +123,9 @@ export default function AIPaymentAssistant({
         </div>
 
         <p className="text-sm text-slate-400 mb-4">
-          Describe your payment in natural language and I&apos;ll help you fill out the form.
+          Describe your payment in natural language and I&apos;ll help you fill
+          out the form.
         </p>
-
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -186,11 +192,15 @@ export default function AIPaymentAssistant({
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Amount:</span>
-                  <span className="text-white font-medium">{parsedIntent.amount || "Not specified"}</span>
+                  <span className="text-white font-medium">
+                    {parsedIntent.amount || "Not specified"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Recipient:</span>
-                  <span className="text-white font-mono text-xs break-all">{parsedIntent.recipient || "Not specified"}</span>
+                  <span className="text-white font-mono text-xs break-all">
+                    {parsedIntent.recipient || "Not specified"}
+                  </span>
                 </div>
                 {parsedIntent.memo && (
                   <div className="flex justify-between">
@@ -216,7 +226,9 @@ export default function AIPaymentAssistant({
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-amber-300 text-sm">{parsedIntent.clarification}</p>
+                <p className="text-amber-300 text-sm">
+                  {parsedIntent.clarification}
+                </p>
                 <button
                   onClick={() => setParsedIntent(null)}
                   className="w-full btn-secondary text-sm py-2"
@@ -235,7 +247,6 @@ export default function AIPaymentAssistant({
             <li>• &quot;Pay 25 XLM to Alice for the consultation&quot;</li>
             <li>• &quot;Transfer 100 XLM to my colleague&quot;</li>
           </ul>
-
         </div>
       </div>
     </div>
@@ -247,7 +258,9 @@ interface FloatingAssistantButtonProps {
   onClick: () => void;
 }
 
-export function FloatingAssistantButton({ onClick }: FloatingAssistantButtonProps) {
+export function FloatingAssistantButton({
+  onClick,
+}: FloatingAssistantButtonProps) {
   return (
     <button
       onClick={onClick}
@@ -269,15 +282,29 @@ export function FloatingAssistantButton({ onClick }: FloatingAssistantButtonProp
 function SparklesIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path fillRule="evenodd" d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5zM16.5 15a.75.75 0 01.712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 010 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 01-1.422 0l-.395-1.183a1.5 1.5 0 00-.948-.948l-1.183-.395a.75.75 0 010-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0116.5 15z" clipRule="evenodd" />
+      <path
+        fillRule="evenodd"
+        d="M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.576 2.576l2.846.813a.75.75 0 010 1.442l-2.846.813a3.75 3.75 0 00-2.576 2.576l-.813 2.846a.75.75 0 01-1.442 0l-.813-2.846a3.75 3.75 0 00-2.576-2.576l-2.846-.813a.75.75 0 010-1.442l2.846-.813A3.75 3.75 0 007.466 7.89l.813-2.846A.75.75 0 019 4.5zM18 1.5a.75.75 0 01.728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 010 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 01-1.456 0l-.258-1.036a2.625 2.625 0 00-1.91-1.91l-1.036-.258a.75.75 0 010-1.456l1.036-.258a2.625 2.625 0 001.91-1.91l.258-1.036A.75.75 0 0118 1.5zM16.5 15a.75.75 0 01.712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 010 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 01-1.422 0l-.395-1.183a1.5 1.5 0 00-.948-.948l-1.183-.395a.75.75 0 010-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0116.5 15z"
+        clipRule="evenodd"
+      />
     </svg>
   );
 }
 
 function XMarkIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 18L18 6M6 6l12 12"
+      />
     </svg>
   );
 }
@@ -285,7 +312,11 @@ function XMarkIcon({ className }: { className?: string }) {
 function CheckCircleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+      <path
+        fillRule="evenodd"
+        d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
+        clipRule="evenodd"
+      />
     </svg>
   );
 }
@@ -293,7 +324,11 @@ function CheckCircleIcon({ className }: { className?: string }) {
 function ExclamationTriangleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+      <path
+        fillRule="evenodd"
+        d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
+        clipRule="evenodd"
+      />
     </svg>
   );
 }
@@ -301,8 +336,19 @@ function ExclamationTriangleIcon({ className }: { className?: string }) {
 function Spinner() {
   return (
     <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
     </svg>
   );
 }
