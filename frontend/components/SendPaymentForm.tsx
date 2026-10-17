@@ -23,7 +23,7 @@ import {
   fetchNetworkFeeStats,
   isValidStellarAddress,
   memoTextByteLength,
-  memoValueError,
+  resolveFederationAddress,
   server,
   STELLAR_BASE_FEE_XLM,
   STELLAR_MEMO_HASH_HEX_LENGTH,

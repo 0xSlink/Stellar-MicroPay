@@ -69,6 +69,7 @@ import {
   Tooltip,
 } from "recharts";
 
+
 import Toast from "@/components/Toast";
 import ExternalPaymentBanner from "@/components/ExternalPaymentBanner";
 import PaymentRequestGenerator from "@/pages/PaymentRequestGenerator";
@@ -942,6 +943,26 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
   };
 
 
+  // Onboarding tour logic
+  useEffect(() => {
+    if (publicKey) {
+      const hasSeenTour = localStorage.getItem("stellar-micropay:onboarding-completed");
+      if (!hasSeenTour) {
+        setShowOnboardingTour(true);
+      }
+    }
+  }, [publicKey]);
+
+  const handleTourComplete = () => {
+    setShowOnboardingTour(false);
+    localStorage.setItem("stellar-micropay:onboarding-completed", "true");
+  };
+
+  const handleTourSkip = () => {
+    setShowOnboardingTour(false);
+    localStorage.setItem("stellar-micropay:onboarding-completed", "true");
+  };
+
   const handlePaymentSuccess = () => {
     setTimeout(() => {
       setRefreshKey((k) => k + 1);
@@ -1050,6 +1071,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
         body: 'You will now receive notifications for incoming payments.',
         icon: '/favicon.svg',
         badge: '/favicon.svg',
+        data: { url: '/dashboard' },
       });
     } catch (err) {
       console.error('Failed to enable push notifications:', err);
@@ -1077,6 +1099,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
           body: 'You received 10.00 XLM',
           icon: '/favicon.svg',
           badge: '/favicon.svg',
+          data: { url: '/dashboard' },
         });
       } catch (err) {
         console.error('Test notification failed:', err);
@@ -1473,6 +1496,12 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
         )}
       </div>
 
+      <PaymentInsightsCard
+        payments={recentPaymentsForStats}
+        publicKey={publicKey}
+        loading={spendingLoading}
+      />
+
       {/* Reserve warning (#164). Amber when balance is within 2 XLM of the
           minimum reserve, red when at or below it. Suppressed when the
           account isn't funded — the Friendbot card below covers that path. */}
@@ -1550,6 +1579,12 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
           </div>
         </div>
       )}
+
+      {/* USDC trustline onboarding (#1069) — one-click "Add USDC" when missing */}
+      <AddUsdcTrustline
+        publicKey={publicKey}
+        onTrustlineAdded={() => setRefreshKey((k) => k + 1)}
+      />
 
       {/* USDC balance card — shown only when account has USDC trustline */}
       {usdcBalance !== null && (

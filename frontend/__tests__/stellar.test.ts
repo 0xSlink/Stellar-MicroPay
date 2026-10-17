@@ -3,7 +3,6 @@ import {
   buildMemo,
   buildPaymentTransaction,
   collectSignatures,
-  createStellarMemo,
   getNetworkPassphrase,
   isValidStellarAddress,
   memoTextByteLength,

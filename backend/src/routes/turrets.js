@@ -62,71 +62,9 @@ const router = express.Router();
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/", strictLimiter, controller.list);
-
-/**
- * @swagger
- * /api/turrets/challenge:
- *   post:
- *     tags: [Turrets]
- *     summary: Get a signing challenge for deploying a txFunction
- *     description: >-
- *       Normalizes the requested txFunction configuration, derives the
- *       deployment hash, and builds a ManageData challenge transaction the
- *       owner account must sign before deploying.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [ownerPublicKey, type]
- *             properties:
- *               ownerPublicKey:
- *                 type: string
- *                 pattern: ^G[A-Z0-9]{55}$
- *                 description: Stellar public key that will own the deployment.
- *               type:
- *                 type: string
- *                 enum: [dca, stop_loss]
- *                 description: txFunction type to configure.
- *               config:
- *                 type: object
- *                 description: >-
- *                   Type-specific configuration. DCA accepts `intervalMinutes`
- *                   (>= 1), `amountQuote` (> 0), `quoteAssetCode`,
- *                   `quoteAssetIssuer`. Stop-loss accepts `thresholdPrice`
- *                   (> 0), `amountSell` (> 0), `sellAssetCode`,
- *                   `sellAssetIssuer`, `cooldownMinutes` (>= 1).
- *     responses:
- *       "200":
- *         description: Challenge to sign
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   $ref: '#/components/schemas/TurretsChallenge'
- *       "400":
- *         description: >-
- *           Invalid `ownerPublicKey`, unsupported txFunction type, invalid
- *           configuration values, or malformed JSON body.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       "429":
- *         description: >-
- *           Rate limit exceeded — the strict limiter allows 20 requests per
- *           minute per IP.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
+router.get("/signer", strictLimiter, controller.getSigner);
+router.post("/dca", strictLimiter, controller.createDca);
+router.post("/stop-loss", strictLimiter, controller.createStopLoss);
 router.post("/challenge", strictLimiter, controller.createChallenge);
 
 /**
