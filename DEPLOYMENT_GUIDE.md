@@ -10,6 +10,10 @@ The frontend is a static Next.js export and the API is an Express service. Deplo
 them separately so the frontend can be served from a CDN while API secrets remain
 on the server.
 
+To run the app with Docker Compose instead, see the
+[compose matrix](docs/deployment.md#compose-matrix). It lists which compose
+file and Dockerfile to use for dev, test, staging and prod.
+
 ### Vercel (frontend)
 
 1. Import this repository in Vercel, or use the [one-click flow](https://vercel.com/new/clone?repository-url=https://github.com/Emmy123222/Stellar-MicroPay).
