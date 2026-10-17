@@ -61,12 +61,16 @@ services:
       - FEDERATION_DOMAINS=stellarmicropay.io,stellarmicropay.com
       - REDIS_URL=redis://redis:6379
       - ANALYTICS_CACHE_TTL_MS=300000
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - SERVER_PRIVATE_KEY_FILE=/run/secrets/server_private_key
+      - PAYMENT_SIGNING_SECRET_FILE=/run/secrets/payment_signing_secret
     depends_on:
       redis:
         condition: service_healthy
     secrets:
       - jwt_secret
       - server_private_key
+      - payment_signing_secret
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
       interval: 30s
@@ -86,6 +90,8 @@ secrets:
     file: ./secrets/jwt_secret.txt
   server_private_key:
     file: ./secrets/server_private_key.txt
+  payment_signing_secret:
+    file: ./secrets/payment_signing_secret.txt
 
 networks:
   proxy:
