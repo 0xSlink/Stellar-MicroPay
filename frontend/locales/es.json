@@ -148,5 +148,9 @@
     "confirmationTimedOut": "Se agotó el tiempo de confirmación de la transacción.",
     "receiptSigningFailed": "Fallo al firmar el recibo",
     "receiptMintFailed": "No se pudo emitir el recibo"
+  },
+  "pwaUpdate": {
+    "available": "Hay una nueva versión disponible",
+    "reload": "Recargar"
   }
 }

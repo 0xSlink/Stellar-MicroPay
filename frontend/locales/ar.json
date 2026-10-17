@@ -149,5 +149,9 @@
     "confirmationTimedOut": "انتهت مهلة تأكيد المعاملة.",
     "receiptSigningFailed": "فشل توقيع الإيصال",
     "receiptMintFailed": "فشل صك الإيصال"
+  },
+  "pwaUpdate": {
+    "available": "يتوفر إصدار جديد من التطبيق",
+    "reload": "إعادة التحميل"
   }
 }

@@ -12,6 +12,7 @@ import Navbar from "@/components/Navbar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { WalletProvider, useWallet } from "@/lib/useWallet";
 import ToastProvider from "@/lib/ToastContext";
+import ServiceWorkerUpdateToast from "@/components/ServiceWorkerUpdateToast";
 
 const AIPaymentAssistant = dynamic(() => import("@/components/AIPaymentAssistant"), {
   ssr: false,
@@ -268,6 +269,8 @@ export default function App({ Component, pageProps }: AppProps) {
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       <WalletProvider>
         <ToastProvider>
+        {/* Detects waiting SW updates and prompts to reload (#1475) */}
+        <ServiceWorkerUpdateToast />
         <Head>
           <title>Stellar-MicroPay | Instant Micropayments</title>
           <meta name="viewport" content="width=device-width, initial-scale=1" />

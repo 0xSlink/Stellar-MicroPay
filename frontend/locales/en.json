@@ -148,5 +148,9 @@
     "confirmationTimedOut": "Transaction confirmation timed out.",
     "receiptSigningFailed": "Receipt signing failed",
     "receiptMintFailed": "Failed to mint receipt"
+  },
+  "pwaUpdate": {
+    "available": "A new version is available",
+    "reload": "Reload"
   }
 }

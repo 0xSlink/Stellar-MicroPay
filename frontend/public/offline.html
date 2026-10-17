@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- Offline fallback for failed navigations (#1474). Fully self-contained:
+       inline styles, inline script, no external requests. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0B0F1A" />
+  <title>Stellar MicroPay — Offline</title>
+  <style>
+    /* Match manifest.json background_color / theme_color. */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0B0F1A;
+      color: #E5E7EB;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .card { max-width: 420px; }
+
+    .mark {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 24px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #7B3FE4, #5B21B6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mark svg { width: 36px; height: 36px; }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #F9FAFB;
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #9CA3AF;
+      margin-bottom: 28px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #7B3FE4, #6D28D9);
+      padding: 12px 32px;
+      border-radius: 12px;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    button:hover { opacity: 0.9; }
+    button:active { transform: scale(0.97); }
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <div class="mark" aria-hidden="true">
+      <!-- Stellar MicroPay diamond logo (matches app icons) -->
+      <svg viewBox="0 0 512 512" role="img" aria-label="Stellar MicroPay">
+        <path d="M256 96 L376 256 L256 416 L136 256 Z" fill="#FFFFFF"/>
+        <path d="M256 190 L312 256 L256 322 L200 256 Z" fill="#7B3FE4"/>
+      </svg>
+    </div>
+
+    <h1 id="offline-title">You're offline</h1>
+    <p id="offline-body">
+      This page hasn't been saved for offline use, and we couldn't reach the
+      network. Check your connection and try again.
+    </p>
+
+    <!-- Reloads the page; automatically reloaded once connectivity returns -->
+    <button id="retry" type="button">Retry</button>
+  </main>
+
+  <script>
+    // Translated explanation without any external request: strings are
+    // inlined and chosen from navigator.language (falls back to English).
+    (function () {
+      var MESSAGES = {
+        en: {
+          title: "You're offline",
+          body:
+            "This page hasn't been saved for offline use, and we couldn't reach " +
+            "the network. Check your connection and try again.",
+          retry: "Retry",
+        },
+        es: {
+          title: "Sin conexión",
+          body:
+            "Esta página no se ha guardado para usarla sin conexión y no hemos " +
+            "podido acceder a la red. Comprueba tu conexión e inténtalo de nuevo.",
+          retry: "Reintentar",
+        },
+        ar: {
+          title: "أنت غير متصل بالإنترنت",
+          body:
+            "لم يتم حفظ هذه الصفحة للاستخدام دون اتصال، ولم نتمكن من الاتصال " +
+            "بالشبكة. تحقق من اتصالك وحاول مرة أخرى.",
+          retry: "إعادة المحاولة",
+        },
+      };
+
+      var lang = (navigator.languages && navigator.languages[0]) || navigator.language || "en";
+      var locale = (lang.split("-")[0] || "en").toLowerCase();
+      var msg = MESSAGES[locale] || MESSAGES.en;
+
+      document.documentElement.lang = locale;
+      document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+      document.getElementById("offline-title").textContent = msg.title;
+      document.getElementById("offline-body").textContent = msg.body;
+      document.getElementById("retry").textContent = msg.retry;
+      window.__offlineTitle = msg.title;
+    })();
+
+    // Retry reloads the failed navigation so the SW fetch handler gets
+    // another chance at the network.
+    document.getElementById("retry").addEventListener("click", function () {
+      window.location.reload();
+    });
+
+    // Reload automatically once connectivity returns.
+    window.addEventListener("online", function () {
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>

@@ -13,18 +13,28 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import Toast from "@/components/Toast";
+import Toast, { type ToastAction } from "@/components/Toast";
 
 export type ToastType = "success" | "error" | "info";
+
+/** Optional extras for a toast (action button, custom auto-dismiss time). */
+export interface ToastOptions {
+  /** Auto-dismiss delay in ms; `0` keeps the toast until replaced. */
+  duration?: number;
+  /** Inline action button rendered inside the toast. */
+  action?: ToastAction;
+}
 
 interface ToastItem {
   id: number;
   message: string;
   type: ToastType;
+  duration?: number;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  addToast: (message: string, type?: ToastType) => void;
+  addToast: (message: string, type?: ToastType, options?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextValue>({ addToast: () => {} });
@@ -41,10 +51,22 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
-  const addToast = useCallback((message: string, type: ToastType = "info") => {
-    const id = nextIdRef.current++;
-    setToasts((current) => [...current.slice(-3), { id, message, type }]);
-  }, []);
+  const addToast = useCallback(
+    (message: string, type: ToastType = "info", options?: ToastOptions) => {
+      const id = nextIdRef.current++;
+      setToasts((current) => [
+        ...current.slice(-3),
+        {
+          id,
+          message,
+          type,
+          duration: options?.duration,
+          action: options?.action,
+        },
+      ]);
+    },
+    []
+  );
 
   const value = useMemo(() => ({ addToast }), [addToast]);
 
@@ -56,6 +78,8 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
           key={toast.id}
           message={toast.message}
           type={toast.type}
+          duration={toast.duration}
+          action={toast.action}
           onClose={() => removeToast(toast.id)}
         />
       ))}
