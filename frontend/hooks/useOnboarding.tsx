@@ -16,12 +16,21 @@ const ONBOARDING_SEEN_KEY = "stellar-micropay:onboarding-seen";
 /** Clear the "tour seen" flag so the tour plays again on next dashboard visit. */
 export function resetOnboardingTour() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(ONBOARDING_SEEN_KEY);
+  try {
+    window.localStorage.removeItem(ONBOARDING_SEEN_KEY);
+  } catch (error) {
+    console.error("Failed to reset onboarding state:", error);
+  }
 }
 
 function hasSeenTour(): boolean {
   if (typeof window === "undefined") return true;
-  return window.localStorage.getItem(ONBOARDING_SEEN_KEY) === "true";
+  try {
+    return window.localStorage.getItem(ONBOARDING_SEEN_KEY) === "true";
+  } catch (error) {
+    console.error("Failed to read onboarding state:", error);
+    return false;
+  }
 }
 
 /**
@@ -38,7 +47,11 @@ export function useOnboarding(enabled: boolean) {
 
   const completeTour = useCallback(() => {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(ONBOARDING_SEEN_KEY, "true");
+      try {
+        window.localStorage.setItem(ONBOARDING_SEEN_KEY, "true");
+      } catch (error) {
+        console.error("Failed to save onboarding state:", error);
+      }
     }
     setShowTour(false);
   }, []);
