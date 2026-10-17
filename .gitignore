@@ -51,6 +51,10 @@ test_snapshots
 # ─── Local scripts (never push) ───────────────────────────────────────────────
 scripts/create_issues.py
 
+# ─── Production Secrets (never push) ───────────────────────────────────────────
+secrets/
+!secrets/README.md
+
 # TypeScript build info
 frontend/tsconfig.tsbuildinfo
 
