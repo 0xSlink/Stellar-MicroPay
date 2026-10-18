@@ -16,6 +16,7 @@ import { useTranslation } from "@/contexts/I18nContext";
 import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
+  isLocale,
   type Locale,
 } from "@/lib/i18n";
 import WalletHealthPanel from "@/components/WalletHealthPanel";
@@ -24,7 +25,7 @@ import LeaderboardPrivacyToggle from "@/components/LeaderboardPrivacyToggle";
 export default function SettingsPage() {
   const router = useRouter();
   const { publicKey, disconnectWallet: disconnectCurrentWallet } = useWallet();
-  const { t, locale, setLocale } = useTranslation();
+  const { t, locale, setLocale, resetLocale } = useTranslation();
   const [config, setConfig] = useState<NetworkConfig>({
     network: "testnet",
     horizonUrl: "https://horizon-testnet.stellar.org",
@@ -317,7 +318,11 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            {/* Language picker — persists the locale to localStorage (#1145). */}
+            {/*
+              Language picker — a manual choice is persisted and wins over
+              browser detection on later visits; the reset button hands control
+              back to detection (#1145, #1459).
+            */}
             <div className="bg-white dark:bg-cosmos-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
                 {t("settings.language.title")}
@@ -332,7 +337,11 @@ export default function SettingsPage() {
               <select
                 id="language-select"
                 value={locale}
-                onChange={(event) => setLocale(event.target.value as Locale)}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  // `setLocale` persists the choice, which then wins over detection.
+                  if (isLocale(next)) setLocale(next);
+                }}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-cosmos-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-stellar-500 focus:border-transparent"
               >
                 {SUPPORTED_LOCALES.map((supportedLocale) => (
@@ -341,9 +350,18 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {t("settings.language.hint")}
-              </p>
+              <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t("settings.language.hint")}
+                </p>
+                <button
+                  type="button"
+                  onClick={resetLocale}
+                  className="text-xs font-medium text-stellar-500 hover:text-stellar-400 transition-colors"
+                >
+                  {t("settings.language.useBrowser")}
+                </button>
+              </div>
             </div>
 
             <div className="bg-white dark:bg-cosmos-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">

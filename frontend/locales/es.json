@@ -31,7 +31,8 @@
     "language": {
       "title": "Idioma",
       "label": "Idioma de la interfaz",
-      "hint": "Los cambios se aplican al instante y se guardan en este navegador."
+      "hint": "Los cambios se aplican al instante y se guardan en este navegador.",
+      "useBrowser": "Usar el idioma del navegador"
     },
     "network": {
       "title": "Configuración de la red",
