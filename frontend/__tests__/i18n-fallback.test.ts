@@ -14,7 +14,12 @@ describe("i18n English fallback", () => {
     jest.isolateModules(() => {
       jest.doMock("@/locales/es.json", () => ({
         __esModule: true,
-        default: { dashboard: { title: "Panel" }, common: { cancel: "Cancelar" } },
+        default: {
+          dashboard: { title: "Panel" },
+          common: { cancel: "Cancelar" },
+          // Plural key that only defines the required `other` form.
+          contacts: { count: { other: "{count} contactos" } },
+        },
       }));
 
       const { translate } = jest.requireActual("@/lib/i18n") as typeof import("@/lib/i18n");
@@ -29,6 +34,19 @@ describe("i18n English fallback", () => {
 
       // Missing everywhere — falls back to the key itself.
       expect(translate("es", "totally.unknown")).toBe("totally.unknown");
+
+      // Plural keys fall back to English too (#1460).
+      expect(translate("es", "dashboard.outgoingPayments", { count: 1 })).toBe(
+        "1 outgoing payment"
+      );
+      expect(translate("es", "dashboard.outgoingPayments", { count: 3 })).toBe(
+        "3 outgoing payments"
+      );
+      expect(translate("es", "walletHealth.signers", { count: 2 })).toBe("2 signers");
+
+      // A locale may define only `other`; it is used for every category.
+      expect(translate("es", "contacts.count", { count: 1 })).toBe("1 contactos");
+      expect(translate("es", "contacts.count", { count: 3 })).toBe("3 contactos");
     });
   });
 });

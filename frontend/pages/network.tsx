@@ -40,6 +40,7 @@ function formatLedgerSequence(sequence: number): string {
 
 /** Localized UTC rendering, e.g. `Sep 24, 2026, 10:35 AM UTC`. */
 function formatUtc(isoTimestamp: string): string {
+  if (Number.isNaN(new Date(isoTimestamp).getTime())) return "Unknown";
   return formatDate(isoTimestamp, { timezone: "UTC" });
 }
 

@@ -24,6 +24,7 @@ import {
   OnChainReceipt,
 } from "@/lib/receipts";
 import { loadAllPaymentNotes } from "@/lib/usePaymentNotes";
+import { useTranslation } from "@/contexts/I18nContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const TRANSACTION_FILTERS_STORAGE_KEY = "stellar-micropay:transaction-filters";
@@ -51,6 +52,7 @@ function isDirectionFilter(value: unknown): value is TransactionDirectionFilter 
 }
 
 export default function Transactions() {
+  const { t } = useTranslation();
   const { publicKey } = useWallet();
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [exporting, setExporting] = useState(false);
@@ -560,9 +562,10 @@ export default function Transactions() {
         {hasActiveFilters && (
           <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-500">
-              {`Showing ${filteredPayments.length} of ${payments.length} loaded transaction${
-                payments.length !== 1 ? "s" : ""
-              }`}
+              {t("transactions.showingLoaded", {
+                shown: filteredPayments.length,
+                count: payments.length,
+              })}
             </p>
             <button
               type="button"

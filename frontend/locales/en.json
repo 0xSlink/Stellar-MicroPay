@@ -101,10 +101,14 @@
     "paymentSummary": "Payment summary",
     "paymentStatsLoading": "Payment stats loading",
     "loadingPaymentStats": "Loading payment stats",
-    "outgoingPayments": "{count} outgoing payment",
-    "outgoingPaymentsPlural": "{count} outgoing payments",
-    "incomingPayments": "{count} incoming payment",
-    "incomingPaymentsPlural": "{count} incoming payments",
+    "outgoingPayments": {
+      "one": "{count} outgoing payment",
+      "other": "{count} outgoing payments"
+    },
+    "incomingPayments": {
+      "one": "{count} incoming payment",
+      "other": "{count} incoming payments"
+    },
     "acrossActivity": "Across sent and received activity",
     "monthlySpending": "Monthly Spending (XLM)",
     "suffixSent": "sent",
@@ -148,6 +152,41 @@
     "confirmationTimedOut": "Transaction confirmation timed out.",
     "receiptSigningFailed": "Receipt signing failed",
     "receiptMintFailed": "Failed to mint receipt"
+  },
+  "walletHealth": {
+    "healthy": "Your account is healthy",
+    "warnings": {
+      "one": "{count} warning",
+      "other": "{count} warnings"
+    },
+    "trustlines": {
+      "one": "{count} trustline",
+      "other": "{count} trustlines"
+    },
+    "signers": {
+      "one": "{count} signer",
+      "other": "{count} signers"
+    }
+  },
+  "transactions": {
+    "showingLoaded": {
+      "one": "Showing {shown} of {count} loaded transaction",
+      "other": "Showing {shown} of {count} loaded transactions"
+    }
+  },
+  "contacts": {
+    "count": {
+      "one": "{count} contact",
+      "other": "{count} contacts"
+    },
+    "imported": {
+      "one": "Imported {count} contact",
+      "other": "Imported {count} contacts"
+    },
+    "duplicatesSkipped": {
+      "one": "skipped {count} duplicate",
+      "other": "skipped {count} duplicates"
+    }
   },
   "pwaUpdate": {
     "available": "A new version is available",

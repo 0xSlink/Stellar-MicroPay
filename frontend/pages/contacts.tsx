@@ -15,6 +15,7 @@ import { copyToClipboard } from "@/utils/format";
 import { useToast } from "@/lib/useToast";
 import { useRouter } from "next/router";
 import { useWallet } from "@/lib/useWallet";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface Contact {
   id: string;
@@ -29,6 +30,7 @@ const FAV_TAB_KEY = "stellar-micropay-contacts-favourites-only";
 type ContactFilter = "all" | "favourites";
 
 export default function Contacts() {
+  const { t } = useTranslation();
   const { publicKey } = useWallet();
   const router = useRouter();
   const { visible: toastVisible, message: toastMessage, showToast } = useToast();
@@ -227,7 +229,13 @@ export default function Contacts() {
         const existing = new Set(contacts.map((c) => c.address));
         const fresh = parsed.filter((c) => c?.address && !existing.has(c.address));
         setContacts((prev) => [...prev, ...fresh]);
-        showToast(`Imported ${fresh.length} contact(s)${parsed.length - fresh.length ? `, ${parsed.length - fresh.length} duplicate(s) skipped` : ""}`);
+        const imported = t("contacts.imported", { count: fresh.length });
+        const skipped = parsed.length - fresh.length;
+        showToast(
+          skipped > 0
+            ? `${imported} · ${t("contacts.duplicatesSkipped", { count: skipped })}`
+            : imported
+        );
       } catch {
         showToast("Import failed: malformed JSON file");
       }
@@ -410,7 +418,7 @@ export default function Contacts() {
             <ContactsIcon className="w-5 h-5 text-stellar-400" />
             {`Saved Contacts`}
             <span className="ml-auto text-sm font-normal text-slate-400">
-              {contacts.length} {contacts.length === 1 ? "contact" : "contacts"}
+              {t("contacts.count", { count: contacts.length })}
             </span>
             <button
               onClick={handleExportContacts}
