@@ -12,6 +12,8 @@ import { format, formatDistanceToNow } from "date-fns";
 import {
   formatStroopsToXLM as formatStroopsToXLMIntl,
   formatAsset as formatAssetIntl,
+  formatUSD as formatUSDIntl,
+  formatDate as formatDateIntl,
   getUserLocale,
 } from "./intlFormatters";
 
@@ -50,7 +52,7 @@ export function formatXLM(amount: string | number): string {
 export function formatXLMPrecise(amount: string | number): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   if (!Number.isFinite(num)) return "0 XLM";
-  return `${num.toFixed(7).replace(/\.?0+$/, "")} XLM`;
+  return formatAssetIntl(num, "XLM");
 }
 
 /**
@@ -87,13 +89,18 @@ export function formatAsset(
   const normalized = normalizeAssetCode(assetCode);
   const rule = getAssetFormatRule(normalized);
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
+
   if (amount == null || !Number.isFinite(num)) {
-    return `${(0).toFixed(rule.minimumFractionDigits)} ${normalized}`;
+    return formatAssetIntl(0, normalized, {
+      minimumFractionDigits: rule.minimumFractionDigits,
+      maximumFractionDigits: rule.maximumFractionDigits,
+    });
   }
-  if (rule.minimumFractionDigits === rule.maximumFractionDigits && rule.minimumFractionDigits > 0) {
-    return `${num.toFixed(rule.minimumFractionDigits)} ${normalized}`;
-  }
-  return formatAssetIntl(amount, assetCode);
+
+  return formatAssetIntl(amount, normalized, {
+    minimumFractionDigits: rule.minimumFractionDigits,
+    maximumFractionDigits: rule.maximumFractionDigits,
+  });
 }
 
 /**
@@ -117,9 +124,7 @@ export function timeAgo(dateString: string): string {
  * Format a date string in a human-readable format.
  */
 export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  return format(date, "MMM d, yyyy · HH:mm");
+  return formatDateIntl(dateString);
 }
 
 
@@ -315,13 +320,9 @@ export function parseBatchRecipientsCSV(csv: string): BatchRecipientCSVRow[] {
  * @param locale - The locale for formatting (defaults to user's locale)
  */
 export function formatUSD(usdValue: number, locale?: string): string {
-  void locale;
   if (usdValue == null) return `≈ $0.00 USD`;
   if (isNaN(usdValue)) return `≈ $NaN USD`;
-  return `≈ $${usdValue.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} USD`;
+  return `≈ ${formatUSDIntl(usdValue, { locale, showApprox: false })} USD`;
 }
 
 /**

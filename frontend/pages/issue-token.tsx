@@ -16,6 +16,7 @@ import Head from "next/head";
 import Link from "next/link";
 import type { Transaction } from "@stellar/stellar-sdk";
 import WalletConnect from "@/components/WalletConnect";
+import { formatAsset } from "@/utils/intlFormatters";
 import {
   ASSET_CODE_MAX_LENGTH,
   assetExplorerUrl,
@@ -611,7 +612,7 @@ export default function IssueTokenPage() {
                       Amount issued
                     </dt>
                     <dd className="font-mono text-white">
-                      {Number(amount).toLocaleString("en-US")} {assetCode}
+                      {formatAsset(amount, assetCode)}
                     </dd>
                   </div>
                   <div>

@@ -8,6 +8,7 @@ import { useWallet } from "@/lib/useWallet";
 import WalletConnect from "@/components/WalletConnect";
 import { isValidStellarAddress, USDC_ISSUER } from "@/lib/stellar";
 import { shortenAddress } from "@/utils/format";
+import { formatDate } from "@/utils/intlFormatters";
 import {
   cancelTurretsFunction,
   createScheduledDcaPayment,
@@ -17,15 +18,6 @@ import {
   type ScheduledFrequency,
   type TurretsDeployment,
 } from "@/lib/turrets";
-
-function formatTimestamp(value: string | null): string {
-  if (!value) return "—";
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return value;
-  }
-}
 
 function isScheduledPayment(deployment: TurretsDeployment): boolean {
   return (
@@ -294,11 +286,11 @@ export default function ScheduledPaymentsPage() {
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
                       <div>
                         <p className="uppercase tracking-wide text-slate-500">Last execution</p>
-                        <p className="text-slate-300">{formatTimestamp(payment.lastExecutedAt)}</p>
+                        <p className="text-slate-300">{payment.lastExecutedAt ? formatDate(payment.lastExecutedAt) : "—"}</p>
                       </div>
                       <div>
                         <p className="uppercase tracking-wide text-slate-500">Next run</p>
-                        <p className="text-slate-300">{formatTimestamp(payment.nextRunAt)}</p>
+                        <p className="text-slate-300">{payment.nextRunAt ? formatDate(payment.nextRunAt) : "—"}</p>
                       </div>
                     </div>
 

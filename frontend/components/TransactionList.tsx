@@ -12,7 +12,12 @@ import {
   PaymentRecord,
   PaymentHistoryResponse,
 } from "@/lib/stellar";
-import { formatAsset, timeAgo, copyToClipboard, exportFilteredTransactionsToCSV } from "@/utils/format";
+import { copyToClipboard, exportFilteredTransactionsToCSV } from "@/utils/format";
+import {
+  formatAsset,
+  formatDateTimeShort,
+  formatRelativeTime,
+} from "@/utils/intlFormatters";
 import { loadAllPaymentNotes, savePaymentNote } from "@/lib/usePaymentNotes";
 import { useToast } from "@/lib/useToast";
 import { isReceiptEligible } from "@/lib/receipts";
@@ -96,12 +101,7 @@ function savePaymentHistorySnapshot(
 }
 
 function formatSnapshotTime(savedAt: number) {
-  return new Date(savedAt).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTimeShort(savedAt);
 }
 
 export function matchesPaymentSearch(payment: PaymentRecord, rawQuery: string): boolean {
@@ -681,7 +681,7 @@ export default function TransactionList({
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-slate-500">
-                      {timeAgo(tx.createdAt)}
+                      {formatRelativeTime(tx.createdAt)}
                     </span>
                     {tx.memo && (
                       <span className="text-xs text-slate-600 truncate max-w-32">

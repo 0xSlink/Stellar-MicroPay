@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { server } from "@/lib/stellar";
+import { formatAsset, formatXLM } from "@/utils/intlFormatters";
 
 interface WalletHealthData {
   totalBalance: number;
@@ -227,7 +228,7 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
         {/* Total Balance */}
         <HealthRow
           label="Total Balance"
-          value={`${healthData.totalBalance.toFixed(7)} XLM`}
+          value={formatXLM(healthData.totalBalance, { preserveTrailingZeros: true })}
           tooltipKey="totalBalance"
           activeTooltip={activeTooltip}
           onToggleTooltip={toggleTooltip}
@@ -236,8 +237,8 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
         {/* Spendable Balance */}
         <HealthRow
           label="Spendable Balance"
-          value={`${healthData.spendableBalance.toFixed(7)} XLM`}
-          subValue={`${healthData.baseReserve.toFixed(1)} XLM locked in reserves`}
+          value={formatXLM(healthData.spendableBalance, { preserveTrailingZeros: true })}
+          subValue={`${formatAsset(healthData.baseReserve, "XLM", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} locked in reserves`}
           tooltipKey="spendableBalance"
           activeTooltip={activeTooltip}
           onToggleTooltip={toggleTooltip}
@@ -250,7 +251,7 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
           value={`${healthData.trustlines.length} trustline${healthData.trustlines.length !== 1 ? "s" : ""}`}
           subValue={
             healthData.trustlines.length > 0
-              ? `${(healthData.trustlines.length * BASE_RESERVE).toFixed(1)} XLM reserved`
+              ? `${formatAsset(healthData.trustlines.length * BASE_RESERVE, "XLM", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} reserved`
               : "No extra reserves"
           }
           tooltipKey="trustlines"

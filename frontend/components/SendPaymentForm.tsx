@@ -43,7 +43,12 @@ import { parseHorizonSubmissionError } from "@/lib/horizonErrors";
 import { signTransactionWithWallet } from "@/lib/wallet";
 import { submitSignedPayment } from "@/lib/paymentApi";
 import { resolveSNSDomain } from "@/utils/snsResolver";
-import { formatXLM, shortenAddress } from "@/utils/format";
+import {
+  formatNumber,
+  formatUSD,
+  formatXLM,
+  shortenAddress,
+} from "@/utils/intlFormatters";
 import { useTranslation } from "@/contexts/I18nContext";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
@@ -1190,7 +1195,7 @@ export default function SendPaymentForm({
               <div className="mb-1.5 flex items-center justify-between text-xs">
                 <span className="text-slate-300 font-medium">Transaction Speed</span>
                 <span className="text-slate-400">
-                  Est. Fee: {feeOptions[feeSpeed]?.stroops} stroops ({feeOptions[feeSpeed]?.xlm} XLM)
+                  Est. Fee: {formatNumber(feeOptions[feeSpeed]?.stroops ?? 0, "XLM", { maximumFractionDigits: 0 })} stroops ({formatNumber(feeOptions[feeSpeed]?.xlm ?? 0, "XLM")} XLM)
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -1295,13 +1300,13 @@ export default function SendPaymentForm({
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Estimated received</span>
                   <span className="text-emerald-400 font-medium font-mono">
-                    ~{parseFloat(selectedRoute.destinationAmount).toFixed(6)} {convertDestAsset}
+                    ~{formatNumber(selectedRoute.destinationAmount, convertDestAsset)} {convertDestAsset}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Exchange rate</span>
                   <span className="text-slate-300 font-mono">
-                    1 {selectedAsset} ≈ {selectedRoute.exchangeRate.toFixed(6)} {convertDestAsset}
+                    1 {selectedAsset} ≈ {formatNumber(selectedRoute.exchangeRate, convertDestAsset)} {convertDestAsset}
                   </span>
                 </div>
                 {selectedRoute.path.length > 0 && (
@@ -1669,8 +1674,8 @@ function SendConfirmationModal({ isOpen, destination, amount, memo, memoType, es
               <p className="text-xs text-slate-500 uppercase font-bold">
                 {t("sendPayment.amount", { asset: "XLM" })}
               </p>
-              <p className="text-lg font-bold text-white">{amount} XLM</p>
-              <p className="text-xs text-slate-400">≈ ${usdValue.toFixed(2)} USD</p>
+              <p className="text-lg font-bold text-white">{formatXLM(amount)}</p>
+              <p className="text-xs text-slate-400">{formatUSD(usdValue)}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500 uppercase font-bold">

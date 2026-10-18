@@ -1,6 +1,7 @@
 import React from "react";
 import { PaymentRecord } from "@/lib/stellar";
 import { calculatePaymentInsights } from "@/utils/insights";
+import { formatNumber, formatPercent } from "@/utils/intlFormatters";
 
 interface PaymentInsightsCardProps {
   payments?: PaymentRecord[];
@@ -81,7 +82,7 @@ export default function PaymentInsightsCard({
             />
           </svg>
         )}
-        {Math.abs(percent).toFixed(1)}% vs last month
+        {formatPercent(Math.abs(percent), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} vs last month
       </span>
     );
   };
@@ -104,7 +105,7 @@ export default function PaymentInsightsCard({
           <p className="text-xs text-slate-400 font-medium mb-1">XLM Sent</p>
           <div className="flex items-baseline flex-wrap">
             <span className="text-2xl font-bold text-white">
-              {insights.sentThisMonth.toLocaleString("en-US", {
+              {formatNumber(insights.sentThisMonth, "XLM", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
@@ -113,7 +114,7 @@ export default function PaymentInsightsCard({
             {renderPercentageBadge(insights.sentChangePercent)}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
-            Last month: {insights.sentLastMonth.toFixed(2)} XLM
+            Last month: {formatNumber(insights.sentLastMonth, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XLM
           </p>
         </div>
 
@@ -122,7 +123,7 @@ export default function PaymentInsightsCard({
           <p className="text-xs text-slate-400 font-medium mb-1">XLM Received</p>
           <div className="flex items-baseline flex-wrap">
             <span className="text-2xl font-bold text-white">
-              {insights.receivedThisMonth.toLocaleString("en-US", {
+              {formatNumber(insights.receivedThisMonth, "XLM", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
@@ -131,7 +132,7 @@ export default function PaymentInsightsCard({
             {renderPercentageBadge(insights.receivedChangePercent)}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
-            Last month: {insights.receivedLastMonth.toFixed(2)} XLM
+            Last month: {formatNumber(insights.receivedLastMonth, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XLM
           </p>
         </div>
 
@@ -142,7 +143,7 @@ export default function PaymentInsightsCard({
           </p>
           <div className="flex items-baseline">
             <span className="text-2xl font-bold text-white">
-              {insights.uniqueCounterpartiesThisMonth}
+              {formatNumber(insights.uniqueCounterpartiesThisMonth, "XLM", { maximumFractionDigits: 0 })}
             </span>
             <span className="text-xs text-slate-400 ml-2">accounts interacted</span>
           </div>

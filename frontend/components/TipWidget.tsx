@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import SendPaymentForm from "@/components/SendPaymentForm";
 import WalletConnect from "@/components/WalletConnect";
 import { getXLMBalance, shortenAddress } from "@/lib/stellar";
-import { formatXLM } from "@/utils/format";
+import { formatXLM } from "@/utils/intlFormatters";
 import { useWallet } from "@/lib/useWallet";
 
 interface TipWidgetProps {

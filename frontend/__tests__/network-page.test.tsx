@@ -63,7 +63,7 @@ describe("Network status page", () => {
     expect(screen.getByText("accounts")).toBeInTheDocument();
     expect(screen.getByText("ops/s")).toBeInTheDocument();
     expect(screen.getAllByText("milliseconds")).toHaveLength(2);
-    expect(screen.getByText("2026-09-24 10:35:22 UTC")).toBeInTheDocument();
+    expect(screen.getByText("Sep 24, 2026, 10:35 AM")).toBeInTheDocument();
   });
 
   it("labels the row/column header structure for assistive technology", async () => {

@@ -8,6 +8,11 @@ import {
   truncateMemoText,
 } from "@/lib/stellar";
 import { signTransactionWithWallet } from "@/lib/wallet";
+import {
+  formatAsset,
+  formatNumber,
+  formatXLM,
+} from "@/utils/intlFormatters";
 
 const MAX_RECIPIENTS = 100;
 
@@ -324,14 +329,14 @@ export default function BatchPaymentForm({
             Add recipient
           </button>
           <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-            Total: <span className="font-semibold text-white">{totalXLM.toFixed(7)} XLM</span>
+            Total: <span className="font-semibold text-white">{formatXLM(totalXLM)}</span>
           </div>
         </div>
 
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th>Recipient</th><th>Amount</th><th>Asset</th></tr></thead>
-          <tbody>{recipients.map((r) => <tr key={r.id} className={!isValidStellarAddress(r.address) ? "bg-rose-500/10 text-rose-300" : "text-slate-300"}><td className="font-mono">{r.address.slice(0, 8) || "G..."}</td><td>{Number(r.amount || 0).toFixed(2)}</td><td>XLM</td></tr>)}</tbody>
-          <tfoot className="border-t border-white/10 text-slate-300"><tr><td>Total</td><td className="font-semibold text-white">{totalXLM.toFixed(2)} XLM</td><td /></tr></tfoot>
+          <tbody>{recipients.map((r) => <tr key={r.id} className={!isValidStellarAddress(r.address) ? "bg-rose-500/10 text-rose-300" : "text-slate-300"}><td className="font-mono">{r.address.slice(0, 8) || "G..."}</td><td>{formatNumber(r.amount || 0, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>XLM</td></tr>)}</tbody>
+          <tfoot className="border-t border-white/10 text-slate-300"><tr><td>Total</td><td className="font-semibold text-white">{formatAsset(totalXLM, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td /></tr></tfoot>
         </table>
 
         {exceedsBalance ? (

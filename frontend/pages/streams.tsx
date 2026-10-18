@@ -7,10 +7,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@/lib/useWallet";
 import { signTransactionWithWallet } from "@/lib/wallet";
-import { formatXLM } from "@/utils/format";
+import { formatXLM } from "@/utils/intlFormatters";
 import { buildPaymentTransaction, submitTransaction, getXLMBalance, STELLAR_MINIMUM_ACCOUNT_BALANCE_XLM } from "@/lib/stellar";
-
-const STROOPS_PER_XLM = 10_000_000;
 
 interface Stream {
   streamId: string;
@@ -177,10 +175,6 @@ export default function StreamsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const convertStroopsToXLM = (stroops: number): string => {
-    return (stroops / STROOPS_PER_XLM).toFixed(7);
   };
 
   return (

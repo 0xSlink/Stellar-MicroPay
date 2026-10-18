@@ -23,7 +23,11 @@ import SwapForm from "@/components/SwapForm";
 import Toast from "@/components/Toast";
 import WalletConnect from "@/components/WalletConnect";
 import { useWallet } from "@/lib/useWallet";
-import { format } from "date-fns";
+import {
+  formatAsset,
+  formatNumber,
+  formatTime,
+} from "@/utils/intlFormatters";
 
 export default function Trade() {
   const { publicKey } = useWallet();
@@ -114,10 +118,13 @@ export default function Trade() {
     }
   }, [activeTab, loadOpenOffers, loadOrderbook, loadTradeHistory]);
 
-  const formatAsset = (asset: Asset): string => {
+  const formatAssetLabel = (asset: Asset): string => {
     if (asset.isNative()) return "XLM";
     return `${asset.code}:${asset.issuer}`;
   };
+
+  const assetCode = (asset: Asset): string =>
+    asset.isNative() ? "XLM" : asset.code;
 
   if (!publicKey) {
     return (
@@ -182,8 +189,8 @@ export default function Trade() {
                   <div className="space-y-1">
                     {orderbook.asks.slice(0, 5).map((ask, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span className="text-red-400">{ask.price}</span>
-                        <span className="text-slate-300">{ask.amount}</span>
+                        <span className="text-red-400">{formatNumber(ask.price, "XLM")}</span>
+                        <span className="text-slate-300">{formatNumber(ask.amount, "USDC")}</span>
                       </div>
                     ))}
                   </div>
@@ -193,10 +200,11 @@ export default function Trade() {
                     <span className="text-slate-400">Spread</span>
                     <span className="text-stellar-400">
                       {orderbook.asks[0] && orderbook.bids[0]
-                        ? (
+                        ? formatNumber(
                             parseFloat(orderbook.asks[0].price) -
-                            parseFloat(orderbook.bids[0].price)
-                          ).toFixed(7)
+                              parseFloat(orderbook.bids[0].price),
+                            "XLM"
+                          )
                         : "N/A"}
                     </span>
                   </div>
@@ -206,8 +214,8 @@ export default function Trade() {
                   <div className="space-y-1">
                     {orderbook.bids.slice(0, 5).map((bid, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span className="text-emerald-400">{bid.price}</span>
-                        <span className="text-slate-300">{bid.amount}</span>
+                        <span className="text-emerald-400">{formatNumber(bid.price, "XLM")}</span>
+                        <span className="text-slate-300">{formatNumber(bid.amount, "USDC")}</span>
                       </div>
                     ))}
                   </div>
@@ -235,8 +243,8 @@ export default function Trade() {
             <h2 className="text-xl font-semibold text-white mb-4">Orderbook (USDC/XLM)</h2>
             {orderbook ? (
               <div className="space-y-4 text-sm text-slate-300">
-                <p>Top ask: {orderbook.asks[0]?.price ?? "—"}</p>
-                <p>Top bid: {orderbook.bids[0]?.price ?? "—"}</p>
+                <p>Top ask: {orderbook.asks[0] ? formatNumber(orderbook.asks[0].price, "XLM") : "—"}</p>
+                <p>Top bid: {orderbook.bids[0] ? formatNumber(orderbook.bids[0].price, "XLM") : "—"}</p>
               </div>
             ) : (
               <div className="text-center py-8 text-slate-500">Loading orderbook...</div>
@@ -264,7 +272,7 @@ export default function Trade() {
                   {openOffers.map((offer) => (
                     <tr key={offer.id} className="border-b border-stellar-500/10">
                       <td className="py-3 px-4 text-sm text-white">
-                        {formatAsset(offer.selling)}/{formatAsset(offer.buying)}
+                        {formatAssetLabel(offer.selling)}/{formatAssetLabel(offer.buying)}
                       </td>
                       <td className="py-3 px-4 text-sm">
                         <span
@@ -277,8 +285,8 @@ export default function Trade() {
                           {offer.selling.isNative() ? "Sell" : "Buy"}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-sm text-white text-right">{offer.amount}</td>
-                      <td className="py-3 px-4 text-sm text-white text-right">{offer.price}</td>
+                      <td className="py-3 px-4 text-sm text-white text-right">{formatNumber(offer.amount, assetCode(offer.selling))}</td>
+                      <td className="py-3 px-4 text-sm text-white text-right">{formatNumber(offer.price, assetCode(offer.buying))}</td>
                       <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => handleCancelOffer(offer)}
@@ -318,12 +326,12 @@ export default function Trade() {
                   {tradeHistory.map((trade, index) => (
                     <tr key={index} className="border-b border-stellar-500/10">
                       <td className="py-3 px-4 text-sm text-slate-400">
-                        {format(new Date(trade.timestamp), "HH:mm")}
+                        {formatTime(trade.timestamp)}
                       </td>
-                      <td className="py-3 px-4 text-sm text-white text-right">{trade.price}</td>
-                      <td className="py-3 px-4 text-sm text-white text-right">{trade.base_volume}</td>
-                      <td className="py-3 px-4 text-sm text-white text-right">{trade.counter_volume}</td>
-                      <td className="py-3 px-4 text-sm text-white text-right">{trade.trade_count}</td>
+                      <td className="py-3 px-4 text-sm text-white text-right">{formatNumber(trade.price, "XLM")}</td>
+                      <td className="py-3 px-4 text-sm text-white text-right">{formatAsset(trade.base_volume, "USDC")}</td>
+                      <td className="py-3 px-4 text-sm text-white text-right">{formatAsset(trade.counter_volume, "XLM")}</td>
+                      <td className="py-3 px-4 text-sm text-white text-right">{formatNumber(trade.trade_count, "XLM", { maximumFractionDigits: 0 })}</td>
                     </tr>
                   ))}
                 </tbody>

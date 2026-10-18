@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import SendPaymentForm from "@/components/SendPaymentForm";
 import WalletConnect from "@/components/WalletConnect";
 import { getXLMBalance, getContractTipTotal, CONTRACT_ID } from "@/lib/stellar";
-import { formatStroopsToXLM } from "@/utils/format";
+import { formatStroopsToXLM } from "@/utils/intlFormatters";
 import {
   canRedeemPaymentLink,
   markPaymentLinkRedeemed,

@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Transaction, TransactionBuilder } from "@stellar/stellar-sdk";
 import { getNetworkPassphrase } from "@/lib/stellar";
 import { signTransactionWithWallet } from "@/lib/wallet";
-import { formatAsset } from "@/utils/format";
+import { formatAsset } from "@/utils/intlFormatters";
 
 export default function MultiSigSignPage() {
   const router = useRouter();

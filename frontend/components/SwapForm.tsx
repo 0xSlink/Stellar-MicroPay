@@ -14,6 +14,11 @@ import {
   type StrictSendPathQuote,
 } from "@/lib/stellar";
 import { signTransactionWithWallet } from "@/lib/wallet";
+import {
+  formatAsset,
+  formatNumber,
+  formatPercent,
+} from "@/utils/intlFormatters";
 
 const DEFAULT_SLIPPAGE_BPS = 50; // 0.50%
 const SLIPPAGE_OPTIONS = [25, 50, 100, 200]; // basis points
@@ -139,7 +144,7 @@ export default function SwapForm({
       const receivedDisplay = received ?? quote.destinationAmount;
 
       onSuccess(
-        `Swap successful! Received ${receivedDisplay} ${buyAsset}`
+        `Swap successful! Received ${formatAsset(receivedDisplay, buyAsset)}`
       );
       onSwapComplete();
       setSellAmount("");
@@ -230,7 +235,7 @@ export default function SwapForm({
                 isQuoting
                   ? "Fetching path…"
                   : quote
-                    ? quote.destinationAmount
+                    ? formatNumber(quote.destinationAmount, buyAsset)
                     : ""
               }
               placeholder="—"
@@ -253,7 +258,7 @@ export default function SwapForm({
                     : "border-white/10 text-slate-400 hover:border-white/20"
                 }`}
               >
-                {(bps / 100).toFixed(2)}%
+                {formatPercent(bps / 100, { maximumFractionDigits: 2 })}
               </button>
             ))}
           </div>
@@ -264,18 +269,18 @@ export default function SwapForm({
             <div className="flex justify-between">
               <span className="text-slate-400">Exchange rate</span>
               <span className="text-white">
-                1 {sellAsset} ≈ {quote.exchangeRate.toFixed(7)} {buyAsset}
+                1 {sellAsset} ≈ {formatNumber(quote.exchangeRate, buyAsset)} {buyAsset}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Min received ({(slippageBps / 100).toFixed(2)}% slip)</span>
+              <span className="text-slate-400">Min received ({formatPercent(slippageBps / 100, { maximumFractionDigits: 2 })} slip)</span>
               <span className="text-white">
-                {destMin} {buyAsset}
+                {destMin ? formatAsset(destMin, buyAsset) : "—"}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Path hops</span>
-              <span className="text-white">{quote.path.length}</span>
+              <span className="text-white">{formatNumber(quote.path.length, "XLM", { maximumFractionDigits: 0 })}</span>
             </div>
           </div>
         )}

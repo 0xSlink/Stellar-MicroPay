@@ -135,7 +135,7 @@ describe("formatStroopsToXLM", () => {
 
 describe("formatDate", () => {
   it("formats valid date", () => {
-    expect(formatDate("2023-01-01T12:00:00Z")).toMatch(/Jan 1, 2023 · \d{2}:\d{2}/);
+    expect(formatDate("2023-01-01T12:00:00Z")).toMatch(/Jan 1, 2023, \d{2}:\d{2}/);
   });
 
   it("handles invalid date fallback", () => {
