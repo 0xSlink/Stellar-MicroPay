@@ -274,7 +274,8 @@ To run the stack locally, see the [Docker Compose matrix](docs/deployment.md#com
 ## Documentation
 
 - [📖 Stellar & Soroban Glossary](GLOSSARY.md) — Plain-English guide to Stellar and Soroban terminology (XLM, stroops, ledgers, sequence numbers, Horizon, Soroban, XDR, Freighter, SEP-0007, SEP-0010, trustlines, federation, and turrets).
-- [🤝 Contributing Guide](CONTRIBUTING.md) — Guidelines for contributing and setting up the development environment.
+- [🤝 Contributing Guide](CONTRIBUTING.md) — Guidelines for contributing and setting up the development environment, including how to [add a new locale](docs/i18n.md).
+- [🌍 Adding a New Locale](docs/i18n.md) — Step-by-step guide to shipping a translation: catalog structure, registration in `frontend/lib/i18n.ts`, key parity, fallback, quality rules and the i18n test suites.
 - [🚀 Deployment Guide](DEPLOYMENT_GUIDE.md) — Instructions for deploying to production.
 - [🐳 Docker Compose matrix](docs/deployment.md#compose-matrix) — Which compose file and Dockerfile to use for dev, test, staging and prod, with required secrets, up commands and known issues.
 - [📚 Technical Architecture & Docs](docs/) — Detailed documentation on architecture, Ledger hardware wallet support, Turrets, analytics, and APIs.
