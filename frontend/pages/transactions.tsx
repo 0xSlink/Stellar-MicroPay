@@ -12,7 +12,8 @@ import TransactionList, {
   TransactionFilters,
 } from "@/components/TransactionList";
 import { fetchAllPayments, getNetwork, shortenAddress, PaymentRecord } from "@/lib/stellar";
-import { exportToCSV, exportToJSON, formatAsset, formatDate } from "@/utils/format";
+import { exportToCSV, exportToJSON } from "@/utils/format";
+import { formatAsset, formatDate } from "@/utils/intlFormatters";
 import { useWallet } from "@/lib/useWallet";
 import ReceiptsList, { receiptDate } from "@/components/ReceiptsList";
 import {

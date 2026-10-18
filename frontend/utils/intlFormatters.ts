@@ -75,6 +75,10 @@ export interface AssetFormatOptions {
   locale?: string;
   preserveTrailingZeros?: boolean;
   useGrouping?: boolean;
+  /** Override the asset's minimum fraction digits (e.g. force 2 decimals). */
+  minimumFractionDigits?: number;
+  /** Override the asset's maximum fraction digits. */
+  maximumFractionDigits?: number;
 }
 
 export interface AssetFormatRule {
@@ -143,9 +147,19 @@ export function formatNumber(
     return formatNumber(0, assetCode, options);
   }
 
+  const maximumFractionDigits =
+    options.maximumFractionDigits ?? rule.maximumFractionDigits;
+  const minimumFractionDigits = Math.min(
+    options.minimumFractionDigits ??
+      (options.preserveTrailingZeros
+        ? rule.maximumFractionDigits
+        : rule.minimumFractionDigits),
+    maximumFractionDigits
+  );
+
   const formatter = getCachedNumberFormat(locale, {
-    minimumFractionDigits: options.preserveTrailingZeros ? rule.maximumFractionDigits : rule.minimumFractionDigits,
-    maximumFractionDigits: rule.maximumFractionDigits,
+    minimumFractionDigits,
+    maximumFractionDigits,
     useGrouping: options.useGrouping ?? true,
   });
 
@@ -326,6 +340,33 @@ export function formatUSD(
   return showApprox ? `≈ ${formatted}` : formatted;
 }
 
+/**
+ * Format a percentage from percentage points (not a 0–1 fraction).
+ *
+ * @example
+ * formatPercent(12.345) // => "12.35%" (en-US)
+ * formatPercent(0.5)   // => "0.5%"
+ */
+export function formatPercent(
+  value: number,
+  options: {
+    locale?: string;
+    minimumFractionDigits?: number;
+    maximumFractionDigits?: number;
+  } = {}
+): string {
+  const locale = options.locale ?? getUserLocale();
+  const num = Number.isFinite(value) ? value : 0;
+
+  const formatter = getCachedNumberFormat(locale, {
+    style: 'percent',
+    minimumFractionDigits: options.minimumFractionDigits ?? 0,
+    maximumFractionDigits: options.maximumFractionDigits ?? 2,
+  });
+
+  return formatter.format(num / 100);
+}
+
 // ─── Date & Time Formatters ────────────────────────────────────────────────
 
 export interface DateFormatOptions {
@@ -381,6 +422,159 @@ export function formatDate(
  * formatDateFull('2024-01-15T10:30:45Z')
  * // => "January 15, 2024 at 10:30:45 AM PST"
  */
+/** Format a calendar date without the time, e.g. "Jan 15, 2024". */
+export function formatDateOnly(
+  date: string | Date | number,
+  options: DateFormatOptions = {}
+): string {
+  try {
+    const locale = options.locale ?? getUserLocale();
+    const timezone = options.timezone ?? getUserTimezone();
+    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      return String(date);
+    }
+
+    return getCachedDateTimeFormat(locale, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: timezone,
+    }).format(dateObj);
+  } catch (err) {
+    console.error('Invalid date:', date, err);
+    return String(date);
+  }
+}
+
+/** Format a short month/day label, e.g. "Jan 15" for chart axes. */
+export function formatDateShort(
+  date: string | Date | number,
+  options: DateFormatOptions = {}
+): string {
+  try {
+    const locale = options.locale ?? getUserLocale();
+    const timezone = options.timezone ?? getUserTimezone();
+    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      return String(date);
+    }
+
+    return getCachedDateTimeFormat(locale, {
+      month: 'short',
+      day: 'numeric',
+      timeZone: timezone,
+    }).format(dateObj);
+  } catch (err) {
+    console.error('Invalid date:', date, err);
+    return String(date);
+  }
+}
+
+/** Format a short month/day plus time, e.g. "Jan 15, 10:30 AM". */
+export function formatDateTimeShort(
+  date: string | Date | number,
+  options: DateFormatOptions = {}
+): string {
+  try {
+    const locale = options.locale ?? getUserLocale();
+    const timezone = options.timezone ?? getUserTimezone();
+    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      return String(date);
+    }
+
+    return getCachedDateTimeFormat(locale, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: timezone,
+    }).format(dateObj);
+  } catch (err) {
+    console.error('Invalid date:', date, err);
+    return String(date);
+  }
+}
+
+/** Format a localized time, e.g. "10:30 AM" or "10:30". */
+export function formatTime(
+  date: string | Date | number,
+  options: DateFormatOptions & { seconds?: boolean } = {}
+): string {
+  try {
+    const locale = options.locale ?? getUserLocale();
+    const timezone = options.timezone ?? getUserTimezone();
+    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      return String(date);
+    }
+
+    return getCachedDateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      ...(options.seconds ? { second: '2-digit' } : {}),
+      timeZone: timezone,
+    }).format(dateObj);
+  } catch (err) {
+    console.error('Invalid date:', date, err);
+    return String(date);
+  }
+}
+
+/** Format a month name, e.g. "Jan" (short) or "January" (long). */
+export function formatMonth(
+  date: string | Date | number,
+  options: DateFormatOptions & { style?: 'short' | 'long' } = {}
+): string {
+  try {
+    const locale = options.locale ?? getUserLocale();
+    const timezone = options.timezone ?? getUserTimezone();
+    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      return String(date);
+    }
+
+    return getCachedDateTimeFormat(locale, {
+      month: options.style ?? 'short',
+      timeZone: timezone,
+    }).format(dateObj);
+  } catch (err) {
+    console.error('Invalid date:', date, err);
+    return String(date);
+  }
+}
+
+/** Format a month and year, e.g. "January 2024". */
+export function formatMonthYear(
+  date: string | Date | number,
+  options: DateFormatOptions = {}
+): string {
+  try {
+    const locale = options.locale ?? getUserLocale();
+    const timezone = options.timezone ?? getUserTimezone();
+    const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      return String(date);
+    }
+
+    return getCachedDateTimeFormat(locale, {
+      month: 'long',
+      year: 'numeric',
+      timeZone: timezone,
+    }).format(dateObj);
+  } catch (err) {
+    console.error('Invalid date:', date, err);
+    return String(date);
+  }
+}
+
 export function formatDateFull(
   date: string | Date | number,
   options: DateFormatOptions = {}

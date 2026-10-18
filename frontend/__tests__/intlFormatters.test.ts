@@ -18,7 +18,14 @@ import {
   formatSmallAmount,
   formatStroopsToXLM,
   formatUSD,
+  formatPercent,
   formatDate,
+  formatDateOnly,
+  formatDateShort,
+  formatDateTimeShort,
+  formatTime,
+  formatMonth,
+  formatMonthYear,
   formatDateFull,
   formatRelativeTime,
   pluralize,
@@ -79,6 +86,42 @@ describe('intlFormatters', () => {
       expect(formatXLM(0)).toContain('0');
       expect(formatXLM(0)).toContain('XLM');
       expect(formatXLMPrecise(0, { locale: 'en-US' })).toBe('0.0000000 XLM');
+    });
+
+    it('should allow callers to override fraction digits', () => {
+      expect(
+        formatNumber(1.5, 'XLM', {
+          locale: 'en-US',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      ).toBe('1.50');
+
+      expect(
+        formatNumber(1.23456, 'XLM', {
+          locale: 'de-DE',
+          maximumFractionDigits: 2,
+        })
+      ).toBe('1,23');
+    });
+  });
+
+  describe('Percentage Formatting', () => {
+    it('should format percentage points with locale separators', () => {
+      expect(formatPercent(12.345, { locale: 'en-US' })).toBe('12.35%');
+      expect(formatPercent(0.5, { locale: 'en-US' })).toBe('0.5%');
+      expect(formatPercent(12.345, { locale: 'de-DE' })).toContain('12,35');
+    });
+
+    it('should support explicit fraction digits and invalid values', () => {
+      expect(
+        formatPercent(1200, {
+          locale: 'en-US',
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })
+      ).toBe('1,200.0%');
+      expect(formatPercent(NaN, { locale: 'en-US' })).toBe('0%');
     });
   });
 
@@ -165,6 +208,56 @@ describe('intlFormatters', () => {
       expect(pst).toBeDefined();
       // Times should differ (UTC vs PST)
       expect(utc).not.toBe(pst);
+    });
+
+    it('should format date-only, short date, time and month variants', () => {
+      expect(formatDateOnly(testDate, { locale: 'en-US', timezone: 'UTC' })).toBe(
+        'Jan 15, 2024'
+      );
+      expect(formatDateShort(testDate, { locale: 'en-US', timezone: 'UTC' })).toBe(
+        'Jan 15'
+      );
+      expect(
+        formatDateTimeShort(testDate, { locale: 'en-US', timezone: 'UTC' })
+      ).toBe('Jan 15, 10:30 AM');
+      expect(formatTime(testDate, { locale: 'en-US', timezone: 'UTC' })).toBe(
+        '10:30 AM'
+      );
+      expect(formatMonth(testDate, { locale: 'en-US', timezone: 'UTC' })).toBe(
+        'Jan'
+      );
+      expect(
+        formatMonth(testDate, { locale: 'en-US', timezone: 'UTC', style: 'long' })
+      ).toBe('January');
+      expect(
+        formatMonthYear(testDate, { locale: 'en-US', timezone: 'UTC' })
+      ).toBe('January 2024');
+    });
+
+    it('should localize the new date variants', () => {
+      expect(
+        formatDateOnly(testDate, { locale: 'fr-FR', timezone: 'UTC' })
+      ).toContain('15 janv.');
+      expect(
+        formatDateShort(testDate, { locale: 'fr-FR', timezone: 'UTC' })
+      ).toContain('15 janv.');
+      expect(formatTime(testDate, { locale: 'fr-FR', timezone: 'UTC' })).toBe(
+        '10:30'
+      );
+      expect(formatMonth(testDate, { locale: 'fr-FR', timezone: 'UTC' })).toContain(
+        'janv'
+      );
+      expect(
+        formatMonthYear(testDate, { locale: 'fr-FR', timezone: 'UTC' })
+      ).toContain('janvier 2024');
+    });
+
+    it('should pass through invalid input in the new date variants', () => {
+      expect(formatDateOnly('not-a-date')).toBe('not-a-date');
+      expect(formatDateShort('not-a-date')).toBe('not-a-date');
+      expect(formatTime('not-a-date')).toBe('not-a-date');
+      expect(formatMonth('not-a-date')).toBe('not-a-date');
+      expect(formatMonthYear('not-a-date')).toBe('not-a-date');
     });
 
     it('should format full dates with timezone name', () => {

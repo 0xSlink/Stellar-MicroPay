@@ -14,7 +14,13 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatAsset, shortenAddress, timeAgo } from "@/utils/format";
+import {
+  formatAsset,
+  formatNumber,
+  formatRelativeTime,
+  formatTime,
+  shortenAddress,
+} from "@/utils/intlFormatters";
 
 /** A normalised contract event as delivered by the backend. */
 export interface ContractEvent {
@@ -367,7 +373,7 @@ export default function LiveEventsFeed({
               </span>
 
               <span className="text-xs text-slate-500">
-                Ledger #{event.ledger.toLocaleString("en-US")}
+                Ledger #{formatNumber(event.ledger, "XLM", { maximumFractionDigits: 0 })}
               </span>
 
               <span className="ml-auto flex items-center gap-3 text-[11px] text-slate-500">
@@ -376,7 +382,7 @@ export default function LiveEventsFeed({
                     {truncateHash(event.transactionHash)}
                   </span>
                 )}
-                <span>{event.closedAt ? timeAgo(event.closedAt) : "—"}</span>
+                <span>{event.closedAt ? formatRelativeTime(event.closedAt) : "—"}</span>
               </span>
             </li>
           ))}
@@ -385,7 +391,7 @@ export default function LiveEventsFeed({
 
       {lastUpdatedAt && (
         <p className="mt-3 text-[11px] text-slate-600">
-          Last event received {lastUpdatedAt.toLocaleTimeString()}
+          Last event received {formatTime(lastUpdatedAt)}
         </p>
       )}
     </section>

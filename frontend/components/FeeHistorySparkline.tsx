@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { LineChart, Line, Tooltip, ResponsiveContainer } from "recharts";
+import { formatTime, formatXLM } from "@/utils/intlFormatters";
 
 interface FeeDataPoint {
   timestamp: string;
@@ -47,7 +48,7 @@ export default function FeeHistorySparkline({ className = "" }: FeeHistorySparkl
 
   // Convert stroops to XLM for display
   const chartData = feeHistory.map((point) => ({
-    time: new Date(point.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    time: formatTime(point.timestamp),
     fee: point.fee / 10_000_000, // Convert stroops to XLM
     timestamp: point.timestamp,
   }));
@@ -87,7 +88,7 @@ export default function FeeHistorySparkline({ className = "" }: FeeHistorySparkl
                 return (
                   <div className="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-white shadow-lg">
                     <div className="font-semibold">{data.time}</div>
-                    <div>{data.fee.toFixed(7)} XLM</div>
+                    <div>{formatXLM(data.fee, { preserveTrailingZeros: true })}</div>
                   </div>
                 );
               }

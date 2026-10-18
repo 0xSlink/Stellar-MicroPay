@@ -11,6 +11,8 @@
  * - Graceful `null` when unreachable so UI can show "price unavailable".
  */
 
+import { formatNumber } from "@/utils/intlFormatters";
+
 export type FiatCurrency = "USD" | "EUR" | "BRL" | "GBP";
 
 export const SUPPORTED_FIAT_CURRENCIES: FiatCurrency[] = ["USD", "EUR", "BRL", "GBP"];
@@ -202,14 +204,15 @@ export async function getXlmPrice(currency: FiatCurrency = "USD"): Promise<numbe
 }
 
 /**
- * Format a fiat equivalent, e.g. `~$150.00 USD` / `~€135,00 EUR`.
- * Uses en-US grouping so existing tests (`≈ $150.00 USD`) keep passing.
+ * Format a fiat equivalent, e.g. `≈ $150.00 USD` / `≈ €135,00 EUR`.
+ * The amount uses the user's locale; the currency symbol and code are supplied
+ * by the caller so non-USD fiats keep their own symbol.
  */
 export function formatFiatEquivalent(xlmBalance: string | number, price: number, currency: FiatCurrency): string {
   const balance = typeof xlmBalance === "string" ? parseFloat(xlmBalance) : xlmBalance;
   const total = (Number.isFinite(balance) ? balance : 0) * price;
   const symbol = FIAT_SYMBOLS[currency];
-  const formatted = total.toLocaleString("en-US", {
+  const formatted = formatNumber(total, "XLM", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });

@@ -5,7 +5,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { formatXLM, shortenAddress, formatUSD } from "@/utils/format";
+import { shortenAddress } from "@/utils/format";
+import {
+  formatDate,
+  formatNumber,
+  formatUSD,
+} from "@/utils/intlFormatters";
 
 interface TipRecord {
   id: number;
@@ -82,17 +87,6 @@ export default function CreatorTipsDashboard({
   }, [fetchTips]);
 
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const getTotalXLMReceived = () => {
     if (!stats?.totalByAsset?.XLM) return "0";
     return stats.totalByAsset.XLM.amount;
@@ -132,7 +126,7 @@ export default function CreatorTipsDashboard({
             Total Tips Received
           </p>
           <p className="font-display text-2xl font-bold text-white">
-            {stats?.totalTips ?? 0}
+            {stats ? formatNumber(stats.totalTips, "XLM", { maximumFractionDigits: 0 }) : "0"}
           </p>
         </div>
 
@@ -141,12 +135,12 @@ export default function CreatorTipsDashboard({
             Total XLM Received
           </p>
           <p className="font-display text-2xl font-bold text-white">
-            {getTotalXLMReceived()}
+            {formatNumber(getTotalXLMReceived(), "XLM")}
             <span className="text-stellar-400 text-lg ml-1">XLM</span>
           </p>
           {xlmPrice && parseFloat(getTotalXLMReceived()) > 0 && (
             <p className="text-xs text-emerald-400 mt-1">
-              ≈ {formatUSD(parseFloat(getTotalXLMReceived()) * xlmPrice)}
+              {formatUSD(parseFloat(getTotalXLMReceived()) * xlmPrice)}
             </p>
           )}
         </div>
@@ -156,7 +150,7 @@ export default function CreatorTipsDashboard({
             Average Tip
           </p>
           <p className="font-display text-2xl font-bold text-white">
-            {stats?.averageTip ? parseFloat(stats.averageTip).toFixed(2) : "0"}
+            {formatNumber(stats?.averageTip ?? 0, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             <span className="text-stellar-400 text-lg ml-1">XLM</span>
           </p>
         </div>
@@ -249,7 +243,7 @@ export default function CreatorTipsDashboard({
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-slate-500">
-                      {formatTimestamp(tip.timestamp)}
+                      {formatDate(tip.timestamp)}
                     </p>
                     {tip.memo && (
                       <p className="text-xs text-slate-400 mt-1 max-w-[200px] truncate">

@@ -9,6 +9,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import WalletConnect from "@/components/WalletConnect";
 import { useWallet } from "@/lib/useWallet";
+import { formatNumber } from "@/utils/intlFormatters";
 
 const FEATURES = [
   { icon: "⚡", title: "Instant Settlement", desc: "Stellar transactions confirm in 3–5 seconds. No waiting for bank transfers." },
@@ -122,12 +123,11 @@ export default function Home() {
 
         <div className="grid grid-cols-3 gap-px bg-stellar-500/10 rounded-2xl overflow-hidden mb-24 border border-stellar-500/15 cursor-default">
           {STATS.map((stat) => {
-            const formatValue = () => {
-              if (stat.decimals !== undefined) {
-                return stat.target.toFixed(stat.decimals);
-              }
-              return stat.target.toString();
-            };
+            const formatValue = () =>
+              formatNumber(stat.target, "XLM", {
+                minimumFractionDigits: stat.decimals ?? 0,
+                maximumFractionDigits: stat.decimals ?? 0,
+              });
             return (
               <div key={stat.label} className="bg-cosmos-900 text-center py-8 px-4">
                 <div className="font-display text-3xl font-bold text-gradient mb-1">

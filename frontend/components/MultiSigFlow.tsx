@@ -30,7 +30,7 @@ import {
   isValidStellarAddress,
 } from "../lib/stellar";
 import { signTransactionWithWallet } from "../lib/wallet";
-import { formatXLM } from "../utils/format";
+import { formatXLM } from "../utils/intlFormatters";
 
 interface MultiSigFlowProps {
   publicKey: string;

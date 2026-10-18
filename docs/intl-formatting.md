@@ -71,6 +71,16 @@ upper-cased.
 | `formatStroopsToXLM(stroops, opts?)` | Soroban / Horizon `i128` values (1 XLM = 10,000,000 stroops); accepts `bigint`, `string`, `number` | `formatStroopsToXLM(123456)` → `0.0123456 XLM` |
 | `formatSmallAmount(amount, asset?, opts?)` | Values that may be below `0.0001` | `formatSmallAmount(0.00000123, "USDC")` → `~1.23 × 10⁻⁶ USDC` |
 | `formatUSD(amount, { locale?, showApprox? })` | Fiat estimates; prefixes `≈` unless `showApprox: false` | `formatUSD(1234.56)` → `≈ $1,234.56` |
+| `formatPercent(points, { locale?, minimumFractionDigits?, maximumFractionDigits? })` | Percentages supplied as points (`12.5`, not `0.125`); default max 2 decimals | `formatPercent(12.345)` → `12.35%` |
+
+Number options also accept `minimumFractionDigits` / `maximumFractionDigits`
+to override an asset's default precision without bypassing `Intl` — useful for
+fixed 2-decimal summaries while keeping locale separators:
+
+```ts
+formatNumber(1.5, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); // "1.50"
+formatAsset(1.5, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); // "1.50 XLM"
+```
 
 Separators follow the locale:
 
@@ -82,11 +92,17 @@ formatXLM(1234.5678, { locale: "fr-FR" }); // "1 234,5678 XLM"
 
 ## Dates and times
 
-All three accept a `Date`, ISO string, or millisecond timestamp.
+All date helpers accept a `Date`, ISO string, or millisecond timestamp.
 
 | Function | Output (en-US) |
 | --- | --- |
 | `formatDate(date, { locale?, timezone? })` | `Jan 15, 2024, 10:30 AM` |
+| `formatDateOnly(date, { locale?, timezone? })` | `Jan 15, 2024` |
+| `formatDateShort(date, { locale?, timezone? })` | `Jan 15` (chart axes) |
+| `formatDateTimeShort(date, { locale?, timezone? })` | `Jan 15, 10:30 AM` |
+| `formatTime(date, { locale?, timezone?, seconds? })` | `10:30 AM` |
+| `formatMonth(date, { locale?, timezone?, style? })` | `Jan` / `January` |
+| `formatMonthYear(date, { locale?, timezone? })` | `January 2024` |
 | `formatDateFull(date, { locale?, timezone? })` | `January 15, 2024 at 10:30:45 AM UTC` (includes seconds and timezone name) |
 | `formatRelativeTime(date, { locale?, now? })` | `3 minutes ago` / `vor 3 Minuten` / `il y a 3 minutes` |
 
@@ -148,11 +164,10 @@ there, to stay compatible with existing callers:
 
 | Function | `format.ts` behaviour |
 | --- | --- |
-| `formatDate` | `date-fns` pattern `MMM d, yyyy · HH:mm`, not localized |
-| `timeAgo` | `date-fns` `formatDistanceToNow`, English only (use `formatRelativeTime` instead) |
-| `formatUSD` | Always `en-US`, appends ` USD` |
+| `timeAgo` | `date-fns` `formatDistanceToNow`, English only (use `formatRelativeTime` instead); kept for backwards compatibility |
+| `formatUSD` | Localized amount with a ` USD` suffix; the Intl helper has no suffix |
 | `formatXLMPrecise` | Trims trailing zeros (the opposite of the Intl version) |
-| `formatAsset` | USDC fixed to 2 decimals |
+| `formatAsset` | USDC fixed to 2 decimals (the Intl helper allows up to 6) |
 
 For new code, import from `@/utils/intlFormatters`. Only reach for `format.ts`
 when you need one of its non-formatting helpers or must match existing output.
@@ -168,6 +183,32 @@ machine running the tests.
 ```bash
 cd frontend && npm test -- intlFormatters
 ```
+
+## Migration audit (issue #1461)
+
+Every user-facing amount, count and date in `frontend/pages` and
+`frontend/components` now goes through `intlFormatters`. The audit command is:
+
+```bash
+cd frontend
+grep -rnE '\.toFixed\(|\.toLocaleString\(|toLocaleDateString\(|toLocaleTimeString\(|new Date\(|Intl\.(DateTimeFormat|NumberFormat)' \
+  --include='*.ts' --include='*.tsx' . \
+  | grep -v node_modules | grep -v __tests__ | grep -v utils/intlFormatters.ts
+```
+
+The only remaining matches are intentionally non-display:
+
+| Location | Why it stays raw |
+| --- | --- |
+| `components/SendPaymentForm.tsx`, `SwapForm.tsx`, `BatchPaymentForm.tsx`, `MultiSigFlow.tsx`, `pages/issue-token.tsx` | `toFixed(7)` values are transaction payload strings sent to the Stellar network. Localizing them would produce invalid XDR amounts. |
+| `pages/dashboard.tsx` (`runningBal.toFixed(4)`) | Numeric precision for the sparkline data, formatted with `formatXLM` when rendered. |
+| `utils/format.ts` CSV writers | CSV is a machine-readable export and needs stable `yyyy-MM-dd HH:mm:ss` / 7-decimal cells. |
+| `lib/stellar.ts` fee percentile strings | Raw fee values consumed by `SendPaymentForm`, which formats both stroops and XLM for display. |
+| `new Date(...)` calls | Parsing/date arithmetic, not display; the resulting dates go through `formatDate*` in the JSX. |
+
+`format.ts` remains as a backwards-compatible façade for non-formatting helpers
+(clipboard, CSV export) and tests. New UI code should import from
+`@/utils/intlFormatters` directly.
 
 ## Browser support
 

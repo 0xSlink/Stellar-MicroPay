@@ -20,6 +20,7 @@ import {
   listTurretsFunctions,
   type TurretsDeployment,
 } from "@/lib/turrets";
+import { formatDate } from "@/utils/intlFormatters";
 
 type Strategy = "dca" | "stop_loss";
 
@@ -326,7 +327,7 @@ export default function TurretsWizard() {
                 </span>
                 <span className="text-slate-400">
                   Last execution:{" "}
-                  {a.lastExecutedAt ? new Date(a.lastExecutedAt).toLocaleString() : "never"}
+                  {a.lastExecutedAt ? formatDate(a.lastExecutedAt) : "never"}
                 </span>
               </li>
             ))}

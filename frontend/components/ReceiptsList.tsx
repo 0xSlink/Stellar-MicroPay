@@ -11,7 +11,7 @@ import {
   stroopsToXlm,
   OnChainReceipt,
 } from "@/lib/receipts";
-import { formatDate } from "@/utils/format";
+import { formatDate } from "@/utils/intlFormatters";
 
 interface ReceiptsListProps {
   publicKey: string;

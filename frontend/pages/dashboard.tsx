@@ -89,7 +89,17 @@ import {
   fetchAllPayments,
   PaymentRecord,
 } from "@/lib/stellar";
-import { formatAsset, formatUSD, copyToClipboard, exportToCSV, shortenAddress } from "@/utils/format";
+import { copyToClipboard, exportToCSV, shortenAddress } from "@/utils/format";
+import {
+  formatAsset,
+  formatDateShort,
+  formatDateTimeShort,
+  formatMonth,
+  formatMonthYear,
+  formatNumber,
+  formatUSD,
+  formatXLM,
+} from "@/utils/intlFormatters";
 import { useToastContext } from "@/lib/ToastContext";
 import { useTranslation } from "@/contexts/I18nContext";
 import { getJwtToken } from "@/lib/auth";
@@ -166,12 +176,7 @@ function saveBalanceSnapshot(
 }
 
 function formatSnapshotTime(savedAt: number) {
-  return new Date(savedAt).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTimeShort(savedAt);
 }
 
 // ─── Dashboard widget drag-to-reorder (#622) ────────────────────────────────
@@ -425,7 +430,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       }
       const d = new Date(p.createdAt);
       points.push({
-        date: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        date: formatDateShort(d),
         balance: parseFloat(runningBal.toFixed(4)),
         timestamp: d.getTime(),
       });
@@ -452,7 +457,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       if (payment.id) latestPaymentIdRef.current = payment.id;
 
       if (payment.type === "received") {
-        const message = `You received ${parseFloat(payment.amount).toFixed(2)} XLM`;
+        const message = `You received ${formatXLM(payment.amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         setIncomingPayment(payment);
         setBubbleMessage(message);
         setShowBubble(true);
@@ -702,12 +707,12 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
 
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         months.push({
-          month: d.toLocaleString("default", { month: "short" }),
+          month: formatMonth(d),
           monthIndex: d.getMonth(),
           year: d.getFullYear(),
           sent: 0,
           received: 0,
-          label: d.toLocaleString("default", { month: "long", year: "numeric" }),
+          label: formatMonthYear(d),
         });
       }
 
@@ -764,7 +769,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       for (let i = 29; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
         days.push({
-          day: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          day: formatDateShort(d),
           dateKey: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`,
           sent: 0,
           received: 0,
@@ -1294,11 +1299,11 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
                       <div className="flex items-center gap-6">
                         <div>
                           <span className="text-xs text-slate-400">Total Sent</span>
-                          <p className="text-lg font-bold text-white">{selectedMonth.sent.toFixed(2)} XLM</p>
+                          <p className="text-lg font-bold text-white">{formatXLM(selectedMonth.sent, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
                           <span className="text-xs text-slate-400">Total Received</span>
-                          <p className="text-lg font-bold text-stellar-400">{selectedMonth.received.toFixed(2)} XLM</p>
+                          <p className="text-lg font-bold text-stellar-400">{formatXLM(selectedMonth.received, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                       </div>
                     </div>
@@ -1418,16 +1423,14 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
             ) : xlmBalance !== null ? (
               <div>
                 <div className={`font-display text-3xl font-bold text-white ${balanceFlash ? "balance-flash" : ""}`}>
-                  {parseFloat(xlmBalance).toLocaleString("en-US", {
-                    maximumFractionDigits: 4,
-                  })}
+                  {formatNumber(xlmBalance, "XLM", { maximumFractionDigits: 4 })}
                   <span className="text-stellar-400 text-xl ml-2">XLM</span>
                 </div>
                 {xlmPrice !== null && (
                   <p className="text-sm text-slate-400 mt-0.5">
                     {formatUSD(parseFloat(xlmBalance) * xlmPrice)}{" "}
                     <span className="text-[11px] text-slate-500">
-                      ≈ {fiatSymbol} {((parseFloat(xlmBalance) * xlmPrice * fiatRate)).toFixed(2)} {fiatCurrency}
+                      ≈ {fiatSymbol} {formatNumber(parseFloat(xlmBalance) * xlmPrice * fiatRate, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {fiatCurrency}
                     </span>
                   </p>
                 )}
@@ -1525,9 +1528,9 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
           >
             <p className="font-semibold mb-1">{headline}</p>
             <p className="text-sm opacity-90">
-              You hold <strong>{bal.toFixed(4)} XLM</strong>. Your account
+              You hold <strong>{formatXLM(bal, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</strong>. Your account
               must keep at least{" "}
-              <strong>{min.toFixed(4)} XLM</strong> reserved
+              <strong>{formatXLM(min, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</strong> reserved
               ({subentryCount} subentries × 0.5 XLM + 2 XLM base). Top up
               before submitting transactions to avoid{" "}
               <code className="text-xs opacity-80">tx_insufficient_balance</code>.
@@ -1910,7 +1913,7 @@ function PaymentStatsWidget({
       />
       <StatsCard
         label={t("dashboard.transactions")}
-        value={stats.totalTransactions.toLocaleString("en-US")}
+        value={formatNumber(stats.totalTransactions, "XLM", { maximumFractionDigits: 0 })}
         helper="Across sent and received activity"
         delta={countDelta}
         deltaType={typeof countDelta === "number" ? (countDelta > 0 ? "positive" : countDelta < 0 ? "negative" : "neutral") : undefined}
@@ -2125,7 +2128,7 @@ function TopRecipientsWidget({
                 <span className="text-xs font-bold text-stellar-400 w-5 text-center">{idx + 1}</span>
                 <span className="font-mono text-sm text-slate-200">{shortenAddress(r.address)}</span>
               </div>
-              <span className="text-sm font-semibold text-white">{parseFloat(r.totalXLMSent).toFixed(2)} XLM</span>
+              <span className="text-sm font-semibold text-white">{formatXLM(r.totalXLMSent, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </li>
           ))}
         </ol>
@@ -2181,10 +2184,10 @@ function formatStatsXLM(amount: string, suffix: string) {
 
   if (Number.isNaN(value)) return `0.00 XLM ${suffix}`.trim();
 
-  return `${value.toLocaleString("en-US", {
+  return `${formatAsset(value, "XLM", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 7,
-  })} XLM ${suffix}`.trim();
+  })} ${suffix}`.trim();
 }
 
 // ─── Sparkline chart ─────────────────────────────────────────────────────────
@@ -2271,7 +2274,7 @@ function BalanceSparkline({ data }: { data: number[] }) {
                 style={{ fontSize: "10px" }}
               >
                 {p.value >= 0 ? "+" : ""}
-                {p.value.toFixed(4)} XLM
+                {formatXLM(p.value, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
               </div>
             </foreignObject>
           </g>

@@ -14,6 +14,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import { fetchNetworkMetrics, type NetworkMetrics } from "@/lib/stellar";
+import {
+  formatDate,
+  formatNumber,
+  formatTime,
+} from "@/utils/intlFormatters";
 
 /** How often the page re-reads Horizon. */
 const AUTO_REFRESH_MS = 10_000;
@@ -30,22 +35,25 @@ interface MetricRow {
 }
 
 function formatLedgerSequence(sequence: number): string {
-  return `#${sequence.toLocaleString("en-US")}`;
+  return `#${formatNumber(sequence, "XLM", { maximumFractionDigits: 0 })}`;
 }
 
-/** Deterministic UTC rendering, e.g. `2026-09-24 10:35:22 UTC`. */
+/** Localized UTC rendering, e.g. `Sep 24, 2026, 10:35 AM UTC`. */
 function formatUtc(isoTimestamp: string): string {
-  const parsed = new Date(isoTimestamp);
-  if (Number.isNaN(parsed.getTime())) return "Unknown";
-  return `${parsed.toISOString().slice(0, 19).replace("T", " ")} UTC`;
+  return formatDate(isoTimestamp, { timezone: "UTC" });
 }
 
 function formatXlm(amount: number): string {
-  return amount.toFixed(7);
+  return formatNumber(amount, "XLM", {
+    minimumFractionDigits: 7,
+    maximumFractionDigits: 7,
+  });
 }
 
 function formatCount(value: number | null): string {
-  return value === null ? "Unavailable" : value.toLocaleString("en-US");
+  return value === null
+    ? "Unavailable"
+    : formatNumber(value, "XLM", { maximumFractionDigits: 0 });
 }
 
 function buildMetricRows(metrics: NetworkMetrics): MetricRow[] {
@@ -67,7 +75,7 @@ function buildMetricRows(metrics: NetworkMetrics): MetricRow[] {
     {
       key: "close-lag",
       metric: "Time since last close",
-      value: metrics.ledgerCloseLagSeconds.toLocaleString("en-US"),
+      value: formatNumber(metrics.ledgerCloseLagSeconds, "XLM", { maximumFractionDigits: 0 }),
       unit: "seconds",
       detail: "Ledgers close roughly every 5 seconds",
     },
@@ -114,21 +122,21 @@ function buildMetricRows(metrics: NetworkMetrics): MetricRow[] {
       value:
         metrics.operationsPerSecond === null
           ? "Unavailable"
-          : metrics.operationsPerSecond.toFixed(2),
+          : formatNumber(metrics.operationsPerSecond, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       unit: "ops/s",
       detail: `Average over the last ${metrics.sampledLedgerCount} ledgers`,
     },
     {
       key: "horizon-latency",
       metric: "Horizon root latency",
-      value: metrics.horizonLatencyMs.toFixed(0),
+      value: formatNumber(metrics.horizonLatencyMs, "XLM", { maximumFractionDigits: 0 }),
       unit: "milliseconds",
       detail: "Measured client-side on this device",
     },
     {
       key: "fee-stats-latency",
       metric: "Horizon fee stats latency",
-      value: metrics.feeStatsLatencyMs.toFixed(0),
+      value: formatNumber(metrics.feeStatsLatencyMs, "XLM", { maximumFractionDigits: 0 }),
       unit: "milliseconds",
       detail: "Measured client-side on this device",
     },
@@ -366,7 +374,7 @@ export default function Network() {
           {isRefreshing
             ? "Refreshing…"
             : lastUpdatedAt
-            ? `Last updated ${lastUpdatedAt.toLocaleTimeString()}`
+            ? `Last updated ${formatTime(lastUpdatedAt)}`
             : "Awaiting first reading"}
         </p>
       </div>
