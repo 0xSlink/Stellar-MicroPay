@@ -9,6 +9,64 @@
   "background_color": "#0B0F1A",
   "theme_color": "#7B3FE4",
   "orientation": "portrait-primary",
+  "categories": ["finance", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Send a payment",
+      "short_name": "Send",
+      "description": "Open the payment page to send XLM",
+      "url": "/pay",
+      "icons": [
+        {
+          "src": "/icon-send-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Request a payment",
+      "short_name": "Receive",
+      "description": "Create a payment request link or QR code",
+      "url": "/request",
+      "icons": [
+        {
+          "src": "/icon-receive-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Open dashboard",
+      "short_name": "Dashboard",
+      "description": "View balances and recent activity",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icon-dashboard-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard-narrow.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Stellar MicroPay dashboard on mobile"
+    },
+    {
+      "src": "/screenshots/dashboard-wide.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Stellar MicroPay dashboard on desktop"
+    }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",

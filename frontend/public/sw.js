@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const PRECACHE = `stellar-micropay-precache-${CACHE_VERSION}`;
 const RUNTIME = `stellar-micropay-runtime-${CACHE_VERSION}`;
 
@@ -12,6 +12,12 @@ const APP_SHELL_URLS = [
   "/maskable-icon-192.png", // maskable icon variants (#1473)
   "/maskable-icon-512.png",
   "/offline.html", // branded offline fallback for failed navigations (#1474)
+  "/icon-send-96.png", // manifest shortcut icons (#1476)
+  "/icon-receive-96.png",
+  "/icon-dashboard-96.png",
+  // Screenshots (/screenshots/*) are intentionally NOT precached: they are
+  // only fetched by the browser's install dialog while online, so caching
+  // them would add ~40KB to every first visit for no offline benefit (#1476).
 ];
 
 const RUNTIME_CACHE_HOSTS = new Set([

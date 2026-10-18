@@ -16,6 +16,8 @@ Web App Manifest that defines:
 - Display mode: standalone (hides browser UI)
 - Theme color: #7B3FE4 (Stellar purple)
 - Icons: 192x192 and 512x512, each with **separate `purpose: "any"` and `purpose: "maskable"` entries** (#1473). See [Icon purpose: any vs maskable](#icon-purpose-any-vs-maskable-1473).
+- App shortcuts, install categories and screenshots (#1476). See
+  [App shortcuts & install metadata (#1476)](#app-shortcuts--install-metadata-1476).
 
 ### 2. **frontend/public/sw.js**
 Service Worker that handles:
@@ -372,12 +374,47 @@ Edit the `InstallBanner` component in `_app.tsx`:
 - [Service Worker API](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API)
 - [Next.js PWA Guide](https://nextjs.org/docs/app/building-your-application/optimizing/progressive-web-apps)
 
+## App Shortcuts & Install Metadata (#1476)
+
+`manifest.json` goes beyond the install basics in two low-effort ways for
+installed users:
+
+### Shortcuts
+
+Three `shortcuts` entries let long-press (Android launcher) / right-click
+(Chrome desktop) on the app icon jump straight to a real exported route:
+
+| Shortcut | Route | 96px icon |
+|----------|-------|-----------|
+| Send a payment | `/pay` | `/icon-send-96.png` |
+| Request a payment | `/request` | `/icon-receive-96.png` |
+| Open dashboard | `/dashboard` | `/icon-dashboard-96.png` |
+
+Each shortcut icon is 96x96 PNG (`frontend/public/icon-*-96.png`) and is
+pre-cached by the service worker alongside the other app-shell icons, so the
+launcher never shows a broken glyph offline.
+
+### Richer install metadata
+
+- `"categories": ["finance", "utilities"]` — store/launcher classification.
+- `"screenshots"` — two entries so Chrome's richer install dialog can preview
+  the app: a **narrow** (1080x1920, `form_factor: "narrow"`) and a **wide**
+  (1920x1080, `form_factor: "wide"`) view, shipped under
+  `frontend/public/screenshots/`. Screenshots are **not** precached: the
+  install dialog only fetches them while online, and precaching ~40KB of
+  marketing images on every first visit buys no offline benefit.
+
+### Verify
+
+Chrome DevTools → **Application** → **Manifest** shows the shortcuts (with
+icons) and the screenshots entries; the **Application Status** section reports
+"shortcuts" and "screenshots" without warnings.
+
 ## Future Enhancements
 
 Consider adding:
 - Background sync for offline transactions
 - Push notifications
 - More granular caching strategies
-- App shortcuts in manifest
 - Share target API
 - Periodic background sync
