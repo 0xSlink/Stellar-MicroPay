@@ -23,7 +23,12 @@
  *
  *   t("dashboard.outgoingPayments", { count: 3 }) // "3 outgoing payments"
  *
- * No external dependency is used; the whole system is ~150 lines.
+ * On a first visit the active locale comes from the browser (#1459):
+ * `navigator.languages` / `navigator.language` are matched against the shipped
+ * catalogs, so a Spanish browser opens in Spanish. An explicit choice from the
+ * language picker is persisted and always wins over detection.
+ *
+ * No external dependency is used; the whole system is ~200 lines.
  */
 
 import en from "@/locales/en.json";
@@ -101,6 +106,71 @@ export function isLocale(value: unknown): value is Locale {
     typeof value === "string" &&
     (["en", "es", "ar", "he"] as readonly string[]).includes(value)
   );
+}
+
+/**
+ * Reduce a BCP 47 tag to its lower-cased primary language subtag.
+ *
+ * `es-MX`, `es_419` and `ES` all collapse to `es`; script and region subtags
+ * never influence which catalog is used.
+ */
+function primarySubtag(tag: string): string {
+  return tag.trim().toLowerCase().split(/[-_]/)[0] ?? "";
+}
+
+/**
+ * Match a BCP 47 language tag against the shipped catalogs (#1459).
+ *
+ * Only {@link SUPPORTED_LOCALES} can match, because those are the catalogs the
+ * language picker can also offer. `he` is a valid {@link Locale} (RTL layout,
+ * English strings) but ships no catalog, so `he-IL` is "unsupported" and
+ * detection falls through to English.
+ *
+ * @returns The matching locale, or `undefined` when there is no catalog for it.
+ *
+ * @example
+ * matchLocale("es-MX") // "es"
+ * matchLocale("en-GB") // "en"
+ * matchLocale("fr-FR") // undefined
+ */
+export function matchLocale(tag: string): Locale | undefined {
+  const subtag = primarySubtag(tag);
+  return SUPPORTED_LOCALES.find((locale) => locale === subtag);
+}
+
+/**
+ * Pick the best shipped catalog for the browser's preferred languages (#1459).
+ *
+ * `navigator.languages` (most preferred first) is consulted before
+ * `navigator.language`, and the first entry with a catalog wins — a browser set
+ * to `["fr-FR", "es-MX"]` opens in Spanish. Anything unsupported, an empty or
+ * missing `navigator` (SSR), or a throwing getter falls back to English.
+ *
+ * @param languages Optional tag list, used by tests; defaults to the browser's.
+ */
+export function detectBrowserLocale(languages?: readonly string[]): Locale {
+  const candidates: string[] = [];
+
+  if (languages) {
+    for (const tag of languages) candidates.push(tag);
+  } else if (typeof navigator !== "undefined") {
+    try {
+      for (const tag of navigator.languages ?? []) candidates.push(tag);
+      if (navigator.language) candidates.push(navigator.language);
+    } catch {
+      // A hardened browser can throw on navigator access — fall back to English.
+      return DEFAULT_LOCALE;
+    }
+  }
+
+  for (const tag of candidates) {
+    if (typeof tag !== "string" || tag === "") continue;
+
+    const match = matchLocale(tag);
+    if (match) return match;
+  }
+
+  return DEFAULT_LOCALE;
 }
 
 /**
@@ -233,17 +303,29 @@ export function createTranslator(locale: Locale): Translate {
   return (key, values) => translate(locale, key, values);
 }
 
-/** Read the persisted locale, defaulting to English. */
-export function getStoredLocale(): Locale {
-  if (typeof window === "undefined") return DEFAULT_LOCALE;
+/**
+ * Read the *explicit* locale the visitor picked, if any (#1459).
+ *
+ * @returns The stored locale, or `null` when the visitor has never chosen one
+ *          (or when storage is unavailable). Storage failures are swallowed:
+ *          a private-mode `localStorage` reads as "no choice", which lets
+ *          browser detection take over instead of breaking the page.
+ */
+export function getLocaleOverride(): Locale | null {
+  if (typeof window === "undefined") return null;
 
   try {
     const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-    return isLocale(stored) ? stored : DEFAULT_LOCALE;
+    return isLocale(stored) ? stored : null;
   } catch {
-    // localStorage can throw in private browsing modes — fall back to English.
-    return DEFAULT_LOCALE;
+    // localStorage can throw in private browsing modes — degrade to detection.
+    return null;
   }
+}
+
+/** Read the persisted locale, defaulting to English. */
+export function getStoredLocale(): Locale {
+  return getLocaleOverride() ?? DEFAULT_LOCALE;
 }
 
 /** Persist the chosen locale so it survives a reload. */
@@ -255,6 +337,33 @@ export function setStoredLocale(locale: Locale): void {
   } catch {
     // Storage being unavailable must never break the UI.
   }
+}
+
+/**
+ * Forget the explicit choice so browser detection applies again (#1459).
+ *
+ * Safe to call when storage is unavailable — the caller then simply keeps the
+ * detected locale.
+ */
+export function clearLocaleOverride(): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem(LOCALE_STORAGE_KEY);
+  } catch {
+    // Storage being unavailable must never break the UI.
+  }
+}
+
+/**
+ * Resolve the locale the app should boot with (#1459).
+ *
+ * Precedence: an explicit manual choice → the browser's preferred language →
+ * English. Detection therefore never overrides a user's selection, and a
+ * first-time visitor gets their browser language instead of English.
+ */
+export function resolveInitialLocale(): Locale {
+  return getLocaleOverride() ?? detectBrowserLocale();
 }
 
 /** Keep `<html lang>` and `<html dir>` in sync so screen readers and layout respect RTL locales (#1318). */

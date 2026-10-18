@@ -14,17 +14,46 @@ import {
   RTL_LOCALES,
   SUPPORTED_LOCALES,
   applyDocumentLocale,
+  clearLocaleOverride,
   createTranslator,
+  detectBrowserLocale,
+  getLocaleOverride,
   getStoredLocale,
   interpolate,
   isLocale,
   isRTL,
   lookupMessage,
+  matchLocale,
+  resolveInitialLocale,
   selectPluralCategory,
   setStoredLocale,
   translate,
 } from "@/lib/i18n";
 import { I18nProvider, useTranslation } from "@/contexts/I18nContext";
+
+/**
+ * Override the jsdom navigator's language preferences for a single test (#1459).
+ * The own properties shadow jsdom's prototype getters and are removed again by
+ * {@link restoreBrowserLanguages}. `navigator.language` defaults to
+ * `languages[0]`.
+ */
+function setBrowserLanguages(languages: string[], language = languages[0] ?? "") {
+  Object.defineProperty(window.navigator, "languages", {
+    value: languages,
+    configurable: true,
+  });
+  Object.defineProperty(window.navigator, "language", {
+    value: language,
+    configurable: true,
+  });
+}
+
+/** Drop the overrides so other tests see jsdom's default `en-US`. */
+function restoreBrowserLanguages() {
+  const navigator = window.navigator as unknown as Record<string, unknown>;
+  delete navigator.languages;
+  delete navigator.language;
+}
 
 /** Flatten a nested locale object into a list of dot-path keys. */
 function collectKeys(node: unknown, prefix = ""): string[] {
@@ -226,6 +255,133 @@ describe("plural selection (#1460)", () => {
   });
 });
 
+describe("browser locale detection (#1459)", () => {
+  afterEach(() => {
+    restoreBrowserLanguages();
+  });
+
+  describe("matchLocale", () => {
+    it("ignores region and script subtags for supported languages", () => {
+      expect(matchLocale("es-MX")).toBe("es");
+      expect(matchLocale("es-ES")).toBe("es");
+      expect(matchLocale("es-419")).toBe("es");
+      expect(matchLocale("es")).toBe("es");
+      expect(matchLocale("en-GB")).toBe("en");
+      expect(matchLocale("ar-EG")).toBe("ar");
+      expect(matchLocale("zh-Hant-TW")).toBeUndefined();
+    });
+
+    it("is case- and separator-insensitive", () => {
+      expect(matchLocale("ES")).toBe("es");
+      expect(matchLocale("es_MX")).toBe("es");
+      expect(matchLocale("  es-MX  ")).toBe("es");
+    });
+
+    it("reports languages we ship no catalog for as unmatched", () => {
+      expect(matchLocale("fr-FR")).toBeUndefined();
+      expect(matchLocale("de")).toBeUndefined();
+      expect(matchLocale("")).toBeUndefined();
+      // Hebrew is a valid Locale for RTL layout (#1318) but ships no catalog.
+      expect(matchLocale("he-IL")).toBeUndefined();
+    });
+  });
+
+  describe("detectBrowserLocale", () => {
+    it("prefers the first browser language that has a catalog", () => {
+      expect(detectBrowserLocale(["fr-FR", "es-MX", "en-US"])).toBe("es");
+      expect(detectBrowserLocale(["de-DE", "ar-EG"])).toBe("ar");
+      expect(detectBrowserLocale(["en-US", "es-MX"])).toBe("en");
+    });
+
+    it("falls back to English for unsupported languages", () => {
+      expect(detectBrowserLocale(["fr-FR", "de-DE"])).toBe("en");
+      expect(detectBrowserLocale([])).toBe("en");
+      expect(detectBrowserLocale([""])).toBe("en");
+    });
+
+    it("reads navigator.languages and then navigator.language", () => {
+      setBrowserLanguages(["fr-FR", "es-MX"], "fr-FR");
+      expect(detectBrowserLocale()).toBe("es");
+
+      setBrowserLanguages([], "ar-EG");
+      expect(detectBrowserLocale()).toBe("ar");
+
+      setBrowserLanguages(["fr-FR"], "fr-FR");
+      expect(detectBrowserLocale()).toBe("en");
+    });
+  });
+
+  describe("resolveInitialLocale precedence", () => {
+    beforeEach(() => {
+      window.localStorage.clear();
+    });
+
+    afterEach(() => {
+      restoreBrowserLanguages();
+    });
+
+    it("detects on a first visit without writing an override", () => {
+      setBrowserLanguages(["es-MX", "en-US"], "es-MX");
+
+      expect(getLocaleOverride()).toBeNull();
+      expect(resolveInitialLocale()).toBe("es");
+      // Detection is not a manual choice, so storage stays untouched.
+      expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBeNull();
+    });
+
+    it("falls back to English when the browser language is unsupported", () => {
+      setBrowserLanguages(["fr-FR", "de-DE"], "fr-FR");
+      expect(resolveInitialLocale()).toBe(DEFAULT_LOCALE);
+    });
+
+    it("lets an explicit choice win over detection, both ways round", () => {
+      setStoredLocale("en");
+      setBrowserLanguages(["es-MX"], "es-MX");
+      expect(resolveInitialLocale()).toBe("en");
+
+      setStoredLocale("es");
+      setBrowserLanguages(["en-US"], "en-US");
+      expect(resolveInitialLocale()).toBe("es");
+    });
+
+    it("ignores an unsupported stored value and detects again", () => {
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, "klingon");
+      setBrowserLanguages(["es-MX"], "es-MX");
+
+      expect(getLocaleOverride()).toBeNull();
+      expect(resolveInitialLocale()).toBe("es");
+    });
+
+    it("degrades to detection when localStorage throws (private mode)", () => {
+      const getItem = jest
+        .spyOn(Storage.prototype, "getItem")
+        .mockImplementation(() => {
+          throw new Error("SecurityError: storage is disabled");
+        });
+
+      setBrowserLanguages(["es-MX"], "es-MX");
+
+      try {
+        expect(getLocaleOverride()).toBeNull();
+        expect(getStoredLocale()).toBe(DEFAULT_LOCALE);
+        expect(resolveInitialLocale()).toBe("es");
+      } finally {
+        getItem.mockRestore();
+      }
+    });
+
+    it("returns to detection once the override is cleared", () => {
+      setStoredLocale("ar");
+      setBrowserLanguages(["es-MX"], "es-MX");
+      expect(resolveInitialLocale()).toBe("ar");
+
+      clearLocaleOverride();
+      expect(getLocaleOverride()).toBeNull();
+      expect(resolveInitialLocale()).toBe("es");
+    });
+  });
+});
+
 describe("locale files", () => {
   it("define exactly the same keys", () => {
     expect(collectKeys(es).sort()).toEqual(collectKeys(en).sort());
@@ -243,7 +399,8 @@ describe("locale files", () => {
 
 /** Small consumer that exposes the hook's API to assertions. */
 function LocaleProbe() {
-  const { t, locale, setLocale, availableLocales } = useTranslation();
+  const { t, locale, setLocale, resetLocale, availableLocales } =
+    useTranslation();
 
   return (
     <div>
@@ -256,6 +413,7 @@ function LocaleProbe() {
       <button onClick={() => setLocale("es")}>switch-es</button>
       <button onClick={() => setLocale("en")}>switch-en</button>
       <button onClick={() => setLocale("ar")}>switch-ar</button>
+      <button onClick={resetLocale}>reset-locale</button>
     </div>
   );
 }
@@ -263,6 +421,10 @@ function LocaleProbe() {
 describe("I18nProvider / useTranslation", () => {
   beforeEach(() => {
     window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    restoreBrowserLanguages();
   });
 
   it("defaults to English without a provider", () => {
@@ -318,5 +480,98 @@ describe("I18nProvider / useTranslation", () => {
       expect(screen.getByTestId("locale")).toHaveTextContent("es")
     );
     expect(screen.getByTestId("heading")).toHaveTextContent("Panel");
+  });
+
+  it("opens in the browser language on a first visit (#1459)", async () => {
+    setBrowserLanguages(["es-MX", "en-US"], "es-MX");
+
+    render(
+      <I18nProvider>
+        <LocaleProbe />
+      </I18nProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("locale")).toHaveTextContent("es")
+    );
+    expect(screen.getByTestId("heading")).toHaveTextContent("Panel");
+    expect(document.documentElement.lang).toBe("es");
+    // Detection alone never becomes a stored override.
+    expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("opens in English when the browser language has no catalog (#1459)", async () => {
+    setBrowserLanguages(["fr-FR", "de-DE"], "fr-FR");
+
+    render(
+      <I18nProvider>
+        <LocaleProbe />
+      </I18nProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("locale")).toHaveTextContent("en")
+    );
+    expect(screen.getByTestId("heading")).toHaveTextContent("Dashboard");
+    expect(document.documentElement.lang).toBe("en");
+  });
+
+  it("keeps a manual choice when the browser language disagrees (#1459)", async () => {
+    const user = userEvent.setup();
+    setBrowserLanguages(["es-MX", "en-US"], "es-MX");
+
+    const { unmount } = render(
+      <I18nProvider>
+        <LocaleProbe />
+      </I18nProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("locale")).toHaveTextContent("es")
+    );
+
+    // The visitor picks English by hand; the choice is persisted.
+    await user.click(screen.getByRole("button", { name: "switch-en" }));
+    expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBe("en");
+    unmount();
+
+    // A later visit with the same Spanish browser must still render English.
+    setBrowserLanguages(["es-MX", "en-US"], "es-MX");
+    render(
+      <I18nProvider>
+        <LocaleProbe />
+      </I18nProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("locale")).toHaveTextContent("en")
+    );
+    expect(screen.getByTestId("heading")).toHaveTextContent("Dashboard");
+  });
+
+  it("hands control back to detection with resetLocale() (#1459)", async () => {
+    const user = userEvent.setup();
+    setBrowserLanguages(["es-MX", "en-US"], "es-MX");
+
+    render(
+      <I18nProvider>
+        <LocaleProbe />
+      </I18nProvider>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("locale")).toHaveTextContent("es")
+    );
+
+    await user.click(screen.getByRole("button", { name: "switch-en" }));
+    expect(screen.getByTestId("locale")).toHaveTextContent("en");
+    expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBe("en");
+
+    await user.click(screen.getByRole("button", { name: "reset-locale" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("locale")).toHaveTextContent("es")
+    );
+    expect(window.localStorage.getItem(LOCALE_STORAGE_KEY)).toBeNull();
   });
 });

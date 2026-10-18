@@ -8,6 +8,12 @@
  *   const { t, locale, setLocale } = useTranslation();
  *   <h1>{t("dashboard.title")}</h1>
  *
+ * Initial locale (#1459): an explicit choice from the language picker always
+ * wins, otherwise the browser's preferred language is used (`es-MX` opens in
+ * Spanish), otherwise English. `setLocale()` persists the manual choice so
+ * detection never overrides it again; `resetLocale()` hands control back to
+ * detection.
+ *
  * The context has an English default value, so components rendered without a
  * provider (for example in unit tests) keep working instead of throwing.
  */
@@ -25,9 +31,11 @@ import {
   DEFAULT_LOCALE,
   SUPPORTED_LOCALES,
   applyDocumentLocale,
+  clearLocaleOverride,
   createTranslator,
-  getStoredLocale,
+  detectBrowserLocale,
   isLocale,
+  resolveInitialLocale,
   setStoredLocale,
   type Locale,
   type Translate,
@@ -36,8 +44,13 @@ import {
 export interface I18nContextValue {
   /** Active locale. */
   locale: Locale;
-  /** Switch locale: updates state, `<html lang>` and localStorage immediately. */
+  /**
+   * Switch locale: updates state, `<html lang>` and localStorage immediately.
+   * The persisted choice wins over browser detection on every later visit.
+   */
   setLocale: (locale: Locale) => void;
+  /** Forget the manual choice and re-apply browser detection (#1459). */
+  resetLocale: () => void;
   /** Translator bound to {@link I18nContextValue.locale}. */
   t: Translate;
   /** Locales the language picker can offer. */
@@ -48,6 +61,7 @@ export interface I18nContextValue {
 export const defaultI18nValue: I18nContextValue = {
   locale: DEFAULT_LOCALE,
   setLocale: () => {},
+  resetLocale: () => {},
   t: createTranslator(DEFAULT_LOCALE),
   availableLocales: SUPPORTED_LOCALES,
 };
@@ -57,11 +71,12 @@ const I18nContext = createContext<I18nContextValue>(defaultI18nValue);
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
 
-  // Hydration can't read localStorage, so the stored locale is applied on mount.
+  // Hydration can't read localStorage or navigator, so the effective locale is
+  // resolved on mount: manual choice first, then browser detection (#1459).
   useEffect(() => {
-    const stored = getStoredLocale();
-    setLocaleState(stored);
-    applyDocumentLocale(stored);
+    const initial = resolveInitialLocale();
+    setLocaleState(initial);
+    applyDocumentLocale(initial);
   }, []);
 
   const setLocale = useCallback((next: Locale) => {
@@ -72,14 +87,23 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     applyDocumentLocale(next);
   }, []);
 
+  const resetLocale = useCallback(() => {
+    clearLocaleOverride();
+
+    const detected = detectBrowserLocale();
+    setLocaleState(detected);
+    applyDocumentLocale(detected);
+  }, []);
+
   const value = useMemo<I18nContextValue>(
     () => ({
       locale,
       setLocale,
+      resetLocale,
       t: createTranslator(locale),
       availableLocales: SUPPORTED_LOCALES,
     }),
-    [locale, setLocale]
+    [locale, setLocale, resetLocale]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
@@ -96,6 +120,7 @@ export function useI18n(): I18nContextValue {
  * @returns A `t(key, values?)` translator plus the active locale and setter.
  */
 export function useTranslation() {
-  const { t, locale, setLocale, availableLocales } = useContext(I18nContext);
-  return { t, locale, setLocale, availableLocales };
+  const { t, locale, setLocale, resetLocale, availableLocales } =
+    useContext(I18nContext);
+  return { t, locale, setLocale, resetLocale, availableLocales };
 }

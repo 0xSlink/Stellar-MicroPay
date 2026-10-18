@@ -31,7 +31,8 @@
     "language": {
       "title": "Language",
       "label": "Display language",
-      "hint": "Changes apply immediately and are remembered on this browser."
+      "hint": "Changes apply immediately and are remembered on this browser.",
+      "useBrowser": "Use browser language"
     },
     "network": {
       "title": "Network Configuration",
