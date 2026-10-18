@@ -12,6 +12,7 @@ const APP_SHELL_URLS = [
   "/maskable-icon-192.png", // maskable icon variants (#1473)
   "/maskable-icon-512.png",
   "/offline.html", // branded offline fallback for failed navigations (#1474)
+  "/apple-touch-icon.png", // 180x180 iOS home-screen icon (#1477)
   "/icon-send-96.png", // manifest shortcut icons (#1476)
   "/icon-receive-96.png",
   "/icon-dashboard-96.png",

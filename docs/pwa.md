@@ -34,9 +34,11 @@ Service Worker that handles:
 ### 3. **frontend/pages/_document.tsx**
 Custom Next.js document with:
 - Manifest link tag
-- Theme color meta tag
-- Apple touch icon reference
-- iOS-specific meta tags for web app capability
+- Theme color meta tag (kept in sync with `theme_color` in the manifest)
+- Dedicated 180x180 Apple touch icon (`/apple-touch-icon.png`, #1477)
+- iOS-specific meta tags for standalone web-app capability and status bar
+  style (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`,
+  `apple-mobile-web-app-title`)
 - MS Tile color for Windows
 
 ### 4. **frontend/pages/_app.tsx** (Modified)
