@@ -15,6 +15,7 @@ Stellar MicroPay is an open-source project and every contribution matters, wheth
 - [How to Fork & Set Up](#how-to-fork--set-up)
 - [Running the Project Locally](#running-the-project-locally)
 - [Making Changes](#making-changes)
+- [Adding a New Locale](#-adding-a-new-locale)
 - [Submitting a Pull Request](#submitting-a-pull-request)
 - [Issue Templates](#issue-templates)
 - [Project Structure Overview](#project-structure-overview)
@@ -140,6 +141,17 @@ chore: upgrade stellar-sdk to latest
 
 ---
 
+## 🌍 Adding a New Locale
+
+Want to translate Stellar MicroPay into your language? Catalogs live in
+[`frontend/locales/`](frontend/locales/) and are registered in
+[`frontend/lib/i18n.ts`](frontend/lib/i18n.ts). The full step-by-step guide —
+copying `en.json`, key/plural conventions, translation-quality rules, the key
+parity requirement, fallback behaviour and the i18n test commands — is in
+[**docs/i18n.md**](docs/i18n.md).
+
+---
+
 ## 🔃 Submitting a Pull Request
 
 1. **Push your branch** to your fork:
@@ -192,7 +204,7 @@ stellar-micropay/
 │       ├── controllers/← Request handlers
 │       └── services/   ← Business logic
 ├── contracts/          ← Soroban smart contracts (Rust)
-├── docs/               ← Architecture & API docs
+├── docs/               ← Architecture & API docs (including i18n.md)
 ├── CONTRIBUTING.md     ← Contribution guidelines
 └── GLOSSARY.md         ← Stellar & Soroban terminology guide
 ```
