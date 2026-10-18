@@ -4,8 +4,10 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import Head from "next/head";
 import { useWallet } from "@/lib/useWallet";
 import WalletConnect from "@/components/WalletConnect";
+import { useTranslation } from "@/contexts/I18nContext";
 import { isValidStellarAddress, USDC_ISSUER } from "@/lib/stellar";
 import { shortenAddress } from "@/utils/format";
 import { formatDate } from "@/utils/intlFormatters";
@@ -29,6 +31,7 @@ function isScheduledPayment(deployment: TurretsDeployment): boolean {
 
 export default function ScheduledPaymentsPage() {
   const { publicKey } = useWallet();
+  const { t } = useTranslation();
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [asset, setAsset] = useState<"XLM" | "USDC">("XLM");
@@ -138,20 +141,29 @@ export default function ScheduledPaymentsPage() {
 
   if (!publicKey) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-        <div className="mb-10 text-center">
-          <h1 className="mb-3 font-display text-3xl font-bold text-white">Scheduled Payments</h1>
-          <p className="text-slate-400">
-            Connect your wallet to create and manage recurring payments.
-          </p>
+      <>
+        <Head>
+          <title>{t("pages.scheduledPayments.title")}</title>
+        </Head>
+        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
+          <div className="mb-10 text-center">
+            <h1 className="mb-3 font-display text-3xl font-bold text-white">Scheduled Payments</h1>
+            <p className="text-slate-400">
+              Connect your wallet to create and manage recurring payments.
+            </p>
+          </div>
+          <WalletConnect />
         </div>
-        <WalletConnect />
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <>
+      <Head>
+        <title>{t("pages.scheduledPayments.title")}</title>
+      </Head>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="mb-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -330,6 +342,7 @@ export default function ScheduledPaymentsPage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

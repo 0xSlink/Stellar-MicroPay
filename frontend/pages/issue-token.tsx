@@ -35,6 +35,7 @@ import {
 } from "@/lib/stellar";
 import { getConnectedPublicKey, signTransactionWithWallet } from "@/lib/wallet";
 import { useWallet } from "@/lib/useWallet";
+import { useTranslation } from "@/contexts/I18nContext";
 import { copyToClipboard } from "@/utils/format";
 
 const WIZARD_STEPS = [
@@ -59,6 +60,7 @@ function errorMessage(error: unknown): string {
 
 export default function IssueTokenPage() {
   const { publicKey } = useWallet();
+  const { t } = useTranslation();
   const network = getNetwork();
 
   const [step, setStep] = useState<StepId>(1);
@@ -242,7 +244,7 @@ export default function IssueTokenPage() {
   return (
     <>
       <Head>
-        <title>Issue a Token | Stellar-MicroPay</title>
+        <title>{t("pages.issueToken.title")}</title>
         <meta
           name="description"
           content="Issue a custom Stellar asset: pick an asset code, set the issuer and distributor, create a trustline, issue the asset and publish a stellar.toml."

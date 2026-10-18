@@ -1,9 +1,11 @@
 import { useRouter } from "next/router";
+import Head from "next/head";
 import { useState, useEffect } from "react";
 import SendPaymentForm from "@/components/SendPaymentForm";
 import WalletConnect from "@/components/WalletConnect";
 import { getXLMBalance } from "@/lib/stellar";
 import { useWallet } from "@/lib/useWallet";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface PrefillData {
   destination: string;
@@ -15,6 +17,7 @@ interface PrefillData {
 export default function RequestPage() {
   const { publicKey } = useWallet();
   const router = useRouter();
+  const { t } = useTranslation();
   const { r } = router.query;
 
   const [prefill, setPrefill] = useState<PrefillData | null>(null);
@@ -56,7 +59,11 @@ export default function RequestPage() {
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto mt-20 p-8 card border-red-500/30 text-center animate-fade-in bg-cosmos-900/50">
+      <>
+        <Head>
+          <title>{t("pages.request.title")}</title>
+        </Head>
+        <div className="max-w-md mx-auto mt-20 p-8 card border-red-500/30 text-center animate-fade-in bg-cosmos-900/50">
         <div className="bg-red-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
           <span className="text-2xl text-red-500">⚠️</span>
         </div>
@@ -68,12 +75,17 @@ export default function RequestPage() {
         >
           Return to Dashboard
         </button>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-16 animate-fade-in">
+    <>
+      <Head>
+        <title>{t("pages.request.title")}</title>
+      </Head>
+      <div className="max-w-2xl mx-auto px-4 py-16 animate-fade-in">
       <div className="text-center mb-10">
         <h1 className="font-display text-3xl font-bold text-white mb-3">Complete Request</h1>
         <p className="text-slate-400">Review the requested details and connect your wallet to pay.</p>
@@ -88,6 +100,7 @@ export default function RequestPage() {
           <SendPaymentForm publicKey={publicKey} xlmBalance={xlmBalance} prefill={prefill} onSuccess={() => setTimeout(() => router.push('/transactions'), 3000)} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

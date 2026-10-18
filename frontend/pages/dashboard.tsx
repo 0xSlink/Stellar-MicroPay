@@ -1189,7 +1189,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
       <Head>
-        <title>Dashboard | Stellar-MicroPay</title>
+        <title>{t("pages.dashboard.title")}</title>
         <meta name="description" content="Manage your Stellar account, view balances, and send micropayments instantly. Real-time transaction history and wallet summary." />
         <link rel="canonical" href="https://stellar-micropay.vercel.app/dashboard" />
       </Head>

@@ -4,14 +4,17 @@
  */
 
 import { useRouter } from "next/router";
+import Head from "next/head";
 import { useEffect, useState } from "react";
 import { Transaction, TransactionBuilder } from "@stellar/stellar-sdk";
 import { getNetworkPassphrase } from "@/lib/stellar";
 import { signTransactionWithWallet } from "@/lib/wallet";
+import { useTranslation } from "@/contexts/I18nContext";
 import { formatAsset } from "@/utils/intlFormatters";
 
 export default function MultiSigSignPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { xdr } = router.query;
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [signedXDR, setSignedXDR] = useState<string | null>(null);
@@ -56,26 +59,40 @@ export default function MultiSigSignPage() {
 
   if (status === "loading") {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="text-center">
-          <p className="text-slate-400">Loading transaction...</p>
+      <>
+        <Head>
+          <title>{t("pages.multiSigSign.title")}</title>
+        </Head>
+        <div className="max-w-2xl mx-auto px-4 py-16">
+          <div className="text-center">
+            <p className="text-slate-400">Loading transaction...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error && !transaction) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="text-center">
-          <p className="text-red-400">{error}</p>
+      <>
+        <Head>
+          <title>{t("pages.multiSigSign.title")}</title>
+        </Head>
+        <div className="max-w-2xl mx-auto px-4 py-16">
+          <div className="text-center">
+            <p className="text-red-400">{error}</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-16">
+    <>
+      <Head>
+        <title>{t("pages.multiSigSign.title")}</title>
+      </Head>
+      <div className="max-w-2xl mx-auto px-4 py-16">
       <h1 className="font-display text-2xl font-bold text-white mb-6">Sign Multi-Signature Transaction</h1>
 
       {transaction && (
@@ -141,6 +158,7 @@ export default function MultiSigSignPage() {
       {error && (
         <p className="text-red-400 text-sm mt-4">{error}</p>
       )}
-    </div>
+      </div>
+    </>
   );
 }

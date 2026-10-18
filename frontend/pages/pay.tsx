@@ -4,11 +4,13 @@
  * Validates expiration, handles errors, and pre-fills the payment form.
  */
 import { useRouter } from "next/router";
+import Head from "next/head";
 import { useState, useEffect } from "react";
 import SendPaymentForm from "@/components/SendPaymentForm";
 import WalletConnect from "@/components/WalletConnect";
 import { getXLMBalance, getContractTipTotal, CONTRACT_ID } from "@/lib/stellar";
 import { formatStroopsToXLM } from "@/utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
 import {
   canRedeemPaymentLink,
   markPaymentLinkRedeemed,
@@ -25,6 +27,7 @@ interface PrefillData {
 export default function PayPage() {
   const { publicKey } = useWallet();
   const router = useRouter();
+  const { t } = useTranslation();
   const { data } = router.query;
 
   const [prefill, setPrefill] = useState<PrefillData | null>(null);
@@ -93,7 +96,11 @@ export default function PayPage() {
   // UI: Error State (Graceful Degradation)
   if (error) {
     return (
-      <div className="max-w-md mx-auto mt-20 p-8 card border-red-500/30 text-center animate-fade-in bg-cosmos-900/50">
+      <>
+        <Head>
+          <title>{t("pages.pay.title")}</title>
+        </Head>
+        <div className="max-w-md mx-auto mt-20 p-8 card border-red-500/30 text-center animate-fade-in bg-cosmos-900/50">
         <div className="bg-red-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
           <span className="text-2xl text-red-500">⚠️</span>
         </div>
@@ -105,12 +112,17 @@ export default function PayPage() {
         >
           Return to Dashboard
         </button>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-16 animate-fade-in">
+    <>
+      <Head>
+        <title>{t("pages.pay.title")}</title>
+      </Head>
+      <div className="max-w-2xl mx-auto px-4 py-16 animate-fade-in">
       <div className="text-center mb-10">
         <h1 className="font-display text-3xl font-bold text-white mb-3">
           Complete Payment
@@ -155,6 +167,7 @@ export default function PayPage() {
           />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

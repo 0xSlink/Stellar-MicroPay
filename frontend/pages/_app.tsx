@@ -10,9 +10,11 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import Navbar from "@/components/Navbar";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import RouteAnnouncer from "@/components/RouteAnnouncer";
 import { WalletProvider, useWallet } from "@/lib/useWallet";
 import ToastProvider from "@/lib/ToastContext";
 import ServiceWorkerUpdateToast from "@/components/ServiceWorkerUpdateToast";
+import { I18nProvider } from "@/contexts/I18nContext";
 
 const AIPaymentAssistant = dynamic(() => import("@/components/AIPaymentAssistant"), {
   ssr: false,
@@ -267,6 +269,10 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {/* I18nProvider was previously only mounted in tests; mounting it here
+          makes the language picker and every `t()` call (page titles, route
+          announcements) follow the resolved locale at runtime (#1480). */}
+      <I18nProvider>
       <WalletProvider>
         <ToastProvider>
         {/* Detects waiting SW updates and prompts to reload (#1475) */}
@@ -318,8 +324,12 @@ export default function App({ Component, pageProps }: AppProps) {
             setIsQuickSendOpen={setIsQuickSendOpen}
           />
         </ErrorBoundary>
+        {/* Announces each client-side navigation's page title to screen
+            readers via a visually hidden live region (#1480). */}
+        <RouteAnnouncer />
         </ToastProvider>
       </WalletProvider>
+      </I18nProvider>
     </ThemeContext.Provider>
   );
 }

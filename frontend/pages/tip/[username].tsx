@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import TipWidget from "@/components/TipWidget";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface ResolvedAccount {
   username: string;
@@ -17,6 +18,7 @@ type ResolveState =
 
 export default function TipPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const routeUsername = useMemo(() => {
     const raw = router.query.username;
     return typeof raw === "string" ? raw : null;
@@ -94,12 +96,16 @@ export default function TipPage() {
     };
   }, [routeUsername, router.isReady]);
 
-  const pageTitle =
+  const displayName =
     resolveState.status === "ready"
-      ? `Tip @${resolveState.account.username} | Stellar MicroPay`
+      ? `@${resolveState.account.username}`
       : routeUsername
-        ? `Tip @${routeUsername} | Stellar MicroPay`
-        : "Tip Creator | Stellar MicroPay";
+        ? `@${routeUsername}`
+        : null;
+
+  const pageTitle = displayName
+    ? t("pages.tip.title", { username: displayName })
+    : t("pages.tip.fallbackTitle");
 
   const ogUsername =
     resolveState.status === "ready" ? resolveState.account.username : routeUsername || "creator";

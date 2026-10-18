@@ -4,10 +4,17 @@
  */
 
 import Link from "next/link";
+import Head from "next/head";
+import { useTranslation } from "@/contexts/I18nContext";
 
 export default function Custom404() {
+  const { t } = useTranslation();
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <>
+      <Head>
+        <title>{t("pages.notFound.title")}</title>
+      </Head>
+      <div className="min-h-screen flex items-center justify-center px-4">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-stellar-500/3 rounded-full blur-3xl" />
@@ -82,6 +89,7 @@ export default function Custom404() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

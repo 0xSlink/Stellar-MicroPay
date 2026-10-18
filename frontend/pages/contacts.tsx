@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import Head from "next/head";
 import Link from "next/link";
 import WalletConnect from "@/components/WalletConnect";
 import {
@@ -246,7 +247,11 @@ export default function Contacts() {
 
   if (!publicKey) {
     return (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 cursor-default select-none">
+      <>
+        <Head>
+          <title>{t("pages.contacts.title")}</title>
+        </Head>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 cursor-default select-none">
         <div className="text-center mb-10">
           <h1 className="font-display text-3xl font-bold text-white mb-3">
             {`Contacts`}
@@ -254,12 +259,17 @@ export default function Contacts() {
           <p className="text-slate-400">{`Connect your wallet to manage contacts`}</p>
         </div>
         <WalletConnect />
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
+    <>
+      <Head>
+        <title>{t("pages.contacts.title")}</title>
+      </Head>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold text-white mb-1">
@@ -524,7 +534,8 @@ export default function Contacts() {
           {`Back to dashboard`}
         </Link>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

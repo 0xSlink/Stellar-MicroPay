@@ -5,8 +5,10 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import Head from "next/head";
 import { useWallet } from "@/lib/useWallet";
 import { signTransactionWithWallet } from "@/lib/wallet";
+import { useTranslation } from "@/contexts/I18nContext";
 import { formatXLM } from "@/utils/intlFormatters";
 import { buildPaymentTransaction, submitTransaction, getXLMBalance, STELLAR_MINIMUM_ACCOUNT_BALANCE_XLM } from "@/lib/stellar";
 
@@ -29,6 +31,7 @@ interface NewStreamForm {
 
 export default function StreamsPage() {
   const { publicKey } = useWallet();
+  const { t } = useTranslation();
   const [xlmBalance, setXlmBalance] = useState("0");
   const [activeTab, setActiveTab] = useState<"open" | "my-streams" | "received">("open");
   const [myStreams, setMyStreams] = useState<Stream[]>([]);
@@ -178,7 +181,11 @@ export default function StreamsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <>
+      <Head>
+        <title>{t("pages.streams.title")}</title>
+      </Head>
+      <div className="max-w-6xl mx-auto px-4 py-8">
       <h1 className="font-display text-3xl font-bold text-white mb-2">Streaming Payments</h1>
       <p className="text-slate-400 mb-8">Open, view, claim, and close Soroban streaming payment contracts.</p>
 
@@ -395,6 +402,7 @@ export default function StreamsPage() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

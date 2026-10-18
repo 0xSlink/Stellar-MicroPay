@@ -304,7 +304,7 @@ export default function SettingsPage() {
   return (
     <>
       <Head>
-        <title>Settings - Stellar MicroPay</title>
+        <title>{t("pages.settings.title")}</title>
       </Head>
       <div className="min-h-screen bg-white dark:bg-cosmos-900">
         <main className="mx-auto max-w-2xl px-4 py-8">

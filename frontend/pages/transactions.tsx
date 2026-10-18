@@ -290,7 +290,7 @@ export default function Transactions() {
     // Added cursor-default and select-none to the main page wrapper
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
       <Head>
-        <title>Transaction History | Stellar-MicroPay</title>
+        <title>{t("pages.transactions.title")}</title>
         <meta name="description" content="View your full Stellar transaction history, export data as CSV or JSON, and print payment receipts. Secure and transparent." />
         <link rel="canonical" href="https://stellar-micropay.vercel.app/transactions" />
       </Head>

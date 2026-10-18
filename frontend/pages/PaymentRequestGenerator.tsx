@@ -1,8 +1,13 @@
 import React, { useState, useRef } from 'react';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
 import clsx from 'clsx';
 import { QRCodeCanvas } from 'qrcode.react';
+import { useTranslation } from '@/contexts/I18nContext';
 
 export default function PaymentRequestGenerator() {
+  const router = useRouter();
+  const { t } = useTranslation();
   const [destination, setDestination] = useState('');
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');
@@ -54,7 +59,18 @@ export default function PaymentRequestGenerator() {
     link.click();
   };
 
+  // This component is both a standalone page (/PaymentRequestGenerator) and a
+  // dashboard panel. Only set the document title when routed to directly, so
+  // the dashboard's own title isn't overridden while embedded (#1480).
+  const isStandalonePage = router.pathname === '/PaymentRequestGenerator';
+
   return (
+    <>
+    {isStandalonePage && (
+      <Head>
+        <title>{t('pages.paymentRequestGenerator.title')}</title>
+      </Head>
+    )}
     <div className="card animate-fade-in border-stellar-400/20">
       <h2 className="font-display text-lg font-semibold text-white mb-6 flex items-center gap-2">
         <LinkIcon className="w-5 h-5 text-stellar-400" />
@@ -162,6 +178,7 @@ export default function PaymentRequestGenerator() {
         )}
       </div>
     </div>
+    </>
   );
 }
 

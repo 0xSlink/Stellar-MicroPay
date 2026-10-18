@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import { fetchNetworkMetrics, type NetworkMetrics } from "@/lib/stellar";
+import { useTranslation } from "@/contexts/I18nContext";
 import {
   formatDate,
   formatNumber,
@@ -204,6 +205,7 @@ function ConnectingSkeleton() {
 }
 
 export default function Network() {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState<NetworkMetrics | null>(null);
   const [status, setStatus] = useState<LoadState>("connecting");
   const [error, setError] = useState<string | null>(null);
@@ -277,7 +279,7 @@ export default function Network() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
         <Head>
-          <title>Network Status | Stellar-MicroPay</title>
+          <title>{t("pages.network.title")}</title>
         </Head>
         {header}
         <ConnectingSkeleton />
@@ -289,7 +291,7 @@ export default function Network() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
         <Head>
-          <title>Network Status | Stellar-MicroPay</title>
+          <title>{t("pages.network.title")}</title>
         </Head>
         {header}
         <div className="text-center" role="alert">
@@ -326,7 +328,7 @@ export default function Network() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
       <Head>
-        <title>Network Status | Stellar-MicroPay</title>
+        <title>{t("pages.network.title")}</title>
         <meta
           name="description"
           content="Live Stellar network health: ledger sequence, close time, fees, active accounts, operations per second and Horizon latency."

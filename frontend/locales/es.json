@@ -192,5 +192,62 @@
   "pwaUpdate": {
     "available": "Hay una nueva versión disponible",
     "reload": "Recargar"
+  },
+  "routeAnnouncer": {
+    "navigatedTo": "Navegado a {title}"
+  },
+  "pages": {
+    "home": {
+      "title": "Inicio | Stellar MicroPay"
+    },
+    "dashboard": {
+      "title": "Panel | Stellar MicroPay"
+    },
+    "trade": {
+      "title": "Operar | Stellar MicroPay"
+    },
+    "scheduledPayments": {
+      "title": "Pagos programados | Stellar MicroPay"
+    },
+    "transactions": {
+      "title": "Transacciones | Stellar MicroPay"
+    },
+    "leaderboard": {
+      "title": "Clasificación de propinas de la comunidad | Stellar MicroPay"
+    },
+    "network": {
+      "title": "Estado de la red | Stellar MicroPay"
+    },
+    "settings": {
+      "title": "Ajustes | Stellar MicroPay"
+    },
+    "contacts": {
+      "title": "Contactos | Stellar MicroPay"
+    },
+    "pay": {
+      "title": "Pagar un enlace de pago | Stellar MicroPay"
+    },
+    "request": {
+      "title": "Solicitar pago | Stellar MicroPay"
+    },
+    "paymentRequestGenerator": {
+      "title": "Generador de solicitudes de pago | Stellar MicroPay"
+    },
+    "streams": {
+      "title": "Pagos en streaming | Stellar MicroPay"
+    },
+    "issueToken": {
+      "title": "Emitir un token | Stellar MicroPay"
+    },
+    "multiSigSign": {
+      "title": "Firmar transacción multifirma | Stellar MicroPay"
+    },
+    "notFound": {
+      "title": "Página no encontrada | Stellar MicroPay"
+    },
+    "tip": {
+      "title": "Propina para {username} | Stellar MicroPay",
+      "fallbackTitle": "Propina para creador | Stellar MicroPay"
+    }
   }
 }
