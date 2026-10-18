@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { server } from "@/lib/stellar";
 import { formatAsset, formatXLM } from "@/utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface WalletHealthData {
   totalBalance: number;
@@ -55,6 +56,7 @@ const TOOLTIP_DESCRIPTIONS: Record<string, string> = {
 };
 
 export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps) {
+  const { t } = useTranslation();
   const [healthData, setHealthData] = useState<WalletHealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -204,7 +206,9 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
           <span
             className={`w-2 h-2 rounded-full ${healthData.isHealthy ? "bg-emerald-400" : "bg-amber-400"}`}
           />
-          {healthData.isHealthy ? "Your account is healthy" : `${healthData.warnings.length} warning${healthData.warnings.length > 1 ? "s" : ""}`}
+          {healthData.isHealthy
+            ? t("walletHealth.healthy")
+            : t("walletHealth.warnings", { count: healthData.warnings.length })}
         </div>
       </div>
 
@@ -248,7 +252,9 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
         {/* Trustlines */}
         <HealthRow
           label="Trustlines"
-          value={`${healthData.trustlines.length} trustline${healthData.trustlines.length !== 1 ? "s" : ""}`}
+          value={t("walletHealth.trustlines", {
+            count: healthData.trustlines.length,
+          })}
           subValue={
             healthData.trustlines.length > 0
               ? `${formatAsset(healthData.trustlines.length * BASE_RESERVE, "XLM", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} reserved`
@@ -282,7 +288,7 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
         {/* Signers */}
         <HealthRow
           label="Multi-sig Signers"
-          value={`${healthData.signers.length} signer${healthData.signers.length !== 1 ? "s" : ""}`}
+          value={t("walletHealth.signers", { count: healthData.signers.length })}
           tooltipKey="signers"
           activeTooltip={activeTooltip}
           onToggleTooltip={toggleTooltip}

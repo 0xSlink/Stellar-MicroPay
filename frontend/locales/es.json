@@ -101,10 +101,14 @@
     "paymentSummary": "Resumen de pagos",
     "paymentStatsLoading": "Cargando estadísticas de pagos",
     "loadingPaymentStats": "Cargando estadísticas de pagos",
-    "outgoingPayments": "{count} pago enviado",
-    "outgoingPaymentsPlural": "{count} pagos enviados",
-    "incomingPayments": "{count} pago recibido",
-    "incomingPaymentsPlural": "{count} pagos recibidos",
+    "outgoingPayments": {
+      "one": "{count} pago enviado",
+      "other": "{count} pagos enviados"
+    },
+    "incomingPayments": {
+      "one": "{count} pago recibido",
+      "other": "{count} pagos recibidos"
+    },
     "acrossActivity": "Entre la actividad enviada y recibida",
     "monthlySpending": "Gasto mensual (XLM)",
     "suffixSent": "enviado",
@@ -148,6 +152,41 @@
     "confirmationTimedOut": "Se agotó el tiempo de confirmación de la transacción.",
     "receiptSigningFailed": "Fallo al firmar el recibo",
     "receiptMintFailed": "No se pudo emitir el recibo"
+  },
+  "walletHealth": {
+    "healthy": "Tu cuenta está en buen estado",
+    "warnings": {
+      "one": "{count} advertencia",
+      "other": "{count} advertencias"
+    },
+    "trustlines": {
+      "one": "{count} línea de confianza",
+      "other": "{count} líneas de confianza"
+    },
+    "signers": {
+      "one": "{count} firmante",
+      "other": "{count} firmantes"
+    }
+  },
+  "transactions": {
+    "showingLoaded": {
+      "one": "Mostrando {shown} de {count} transacción cargada",
+      "other": "Mostrando {shown} de {count} transacciones cargadas"
+    }
+  },
+  "contacts": {
+    "count": {
+      "one": "{count} contacto",
+      "other": "{count} contactos"
+    },
+    "imported": {
+      "one": "Se importó {count} contacto",
+      "other": "Se importaron {count} contactos"
+    },
+    "duplicatesSkipped": {
+      "one": "se omitió {count} duplicado",
+      "other": "se omitieron {count} duplicados"
+    }
   },
   "pwaUpdate": {
     "available": "Hay una nueva versión disponible",

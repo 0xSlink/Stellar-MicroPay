@@ -10,6 +10,7 @@ import {
   DEFAULT_LOCALE,
   LOCALE_LABELS,
   LOCALE_STORAGE_KEY,
+  PLURAL_CATEGORIES,
   RTL_LOCALES,
   SUPPORTED_LOCALES,
   applyDocumentLocale,
@@ -19,6 +20,7 @@ import {
   isLocale,
   isRTL,
   lookupMessage,
+  selectPluralCategory,
   setStoredLocale,
   translate,
 } from "@/lib/i18n";
@@ -59,6 +61,10 @@ describe("i18n core", () => {
     );
     expect(interpolate("{known} {unknown}", { known: "a" })).toBe("a {unknown}");
     expect(interpolate("no tokens", { unused: "x" })).toBe("no tokens");
+    // Double braces are accepted as well, for catalogs that use `{{amount}}`.
+    expect(interpolate("{{amount}} {asset}", { amount: 5, asset: "XLM" })).toBe(
+      "5 XLM"
+    );
   });
 
   it("binds a translator to a locale", () => {
@@ -75,6 +81,18 @@ describe("i18n core", () => {
     expect(lookupMessage(en as never, "settings.language.title")).toBe("Language");
     expect(lookupMessage(en as never, "settings.language")).toBeUndefined();
     expect(lookupMessage(en as never, "settings.nope.deeper")).toBeUndefined();
+  });
+
+  it("stores plural forms as nested one/other keys (#1460)", () => {
+    expect(lookupMessage(en as never, "dashboard.outgoingPayments.one")).toBe(
+      "{count} outgoing payment"
+    );
+    expect(lookupMessage(en as never, "dashboard.outgoingPayments.other")).toBe(
+      "{count} outgoing payments"
+    );
+    // The plural group itself is an object, not a string.
+    expect(lookupMessage(en as never, "dashboard.outgoingPayments")).toBeUndefined();
+    expect(PLURAL_CATEGORIES).toEqual(["zero", "one", "two", "few", "many", "other"]);
   });
 
   it("recognises supported locales only", () => {
@@ -130,6 +148,84 @@ describe("i18n core", () => {
   });
 });
 
+describe("plural selection (#1460)", () => {
+  it("derives the plural category from the locale's CLDR rules", () => {
+    expect(selectPluralCategory("en", 0)).toBe("other");
+    expect(selectPluralCategory("en", 1)).toBe("one");
+    expect(selectPluralCategory("en", 2)).toBe("other");
+
+    expect(selectPluralCategory("es", 1)).toBe("one");
+    expect(selectPluralCategory("es", 2)).toBe("other");
+
+    // Arabic has six categories; the catalogs only define one/other today.
+    expect(selectPluralCategory("ar", 0)).toBe("zero");
+    expect(selectPluralCategory("ar", 1)).toBe("one");
+    expect(selectPluralCategory("ar", 2)).toBe("two");
+    expect(selectPluralCategory("ar", 3)).toBe("few");
+    expect(selectPluralCategory("ar", 11)).toBe("many");
+  });
+
+  it("selects English plural forms without a count === 1 ternary", () => {
+    expect(translate("en", "dashboard.outgoingPayments", { count: 1 })).toBe(
+      "1 outgoing payment"
+    );
+    expect(translate("en", "dashboard.outgoingPayments", { count: 3 })).toBe(
+      "3 outgoing payments"
+    );
+    expect(translate("en", "walletHealth.signers", { count: 1 })).toBe("1 signer");
+    expect(translate("en", "walletHealth.signers", { count: 2 })).toBe("2 signers");
+    // English uses the plural form for zero.
+    expect(translate("en", "dashboard.incomingPayments", { count: 0 })).toBe(
+      "0 incoming payments"
+    );
+  });
+
+  it("selects Spanish plural forms", () => {
+    expect(translate("es", "dashboard.outgoingPayments", { count: 1 })).toBe(
+      "1 pago enviado"
+    );
+    expect(translate("es", "dashboard.outgoingPayments", { count: 4 })).toBe(
+      "4 pagos enviados"
+    );
+    expect(translate("es", "walletHealth.trustlines", { count: 1 })).toBe(
+      "1 línea de confianza"
+    );
+    expect(translate("es", "walletHealth.trustlines", { count: 3 })).toBe(
+      "3 líneas de confianza"
+    );
+    expect(translate("es", "contacts.count", { count: 0 })).toBe("0 contactos");
+  });
+
+  it("falls back to `other` for categories the locale does not define", () => {
+    // Arabic selects `few` for 3, which the catalog does not provide.
+    expect(translate("ar", "contacts.count", { count: 3 })).toBe("3 جهات اتصال");
+    expect(translate("ar", "contacts.count", { count: 1 })).toBe("1 جهة اتصال");
+  });
+
+  it("interpolates other placeholders alongside the count", () => {
+    expect(
+      translate("en", "transactions.showingLoaded", { shown: 3, count: 5 })
+    ).toBe("Showing 3 of 5 loaded transactions");
+    expect(
+      translate("en", "transactions.showingLoaded", { shown: 1, count: 1 })
+    ).toBe("Showing 1 of 1 loaded transaction");
+    expect(
+      translate("es", "transactions.showingLoaded", { shown: 1, count: 2 })
+    ).toBe("Mostrando 1 de 2 transacciones cargadas");
+  });
+
+  it("keeps plain string keys working when a count is passed", () => {
+    expect(translate("en", "dashboard.totalSent", { count: 3 })).toBe("Total Sent");
+    expect(translate("es", "dashboard.totalSent", { count: 3 })).toBe("Total enviado");
+  });
+
+  it("works through a bound translator", () => {
+    const t = createTranslator("es");
+    expect(t("contacts.imported", { count: 1 })).toBe("Se importó 1 contacto");
+    expect(t("contacts.imported", { count: 2 })).toBe("Se importaron 2 contactos");
+  });
+});
+
 describe("locale files", () => {
   it("define exactly the same keys", () => {
     expect(collectKeys(es).sort()).toEqual(collectKeys(en).sort());
@@ -154,7 +250,7 @@ function LocaleProbe() {
       <span data-testid="locale">{locale}</span>
       <span data-testid="heading">{t("dashboard.title")}</span>
       <span data-testid="count">
-        {t("dashboard.outgoingPaymentsPlural", { count: 3 })}
+        {t("dashboard.outgoingPayments", { count: 3 })}
       </span>
       <span data-testid="available">{availableLocales.join(",")}</span>
       <button onClick={() => setLocale("es")}>switch-es</button>

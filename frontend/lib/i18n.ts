@@ -8,7 +8,22 @@
  * to English before finally falling back to the key itself — so a half
  * translated locale never renders `undefined`.
  *
- * No external dependency is used; the whole system is ~100 lines.
+ * Counts use CLDR plural categories (`Intl.PluralRules`). A key that varies by
+ * count is stored as a nested object with `one` / `other` children instead of a
+ * string:
+ *
+ *   "dashboard": {
+ *     "outgoingPayments": {
+ *       "one": "{count} outgoing payment",
+ *       "other": "{count} outgoing payments"
+ *     }
+ *   }
+ *
+ * Callers just pass the count and never write `count === 1 ?` themselves:
+ *
+ *   t("dashboard.outgoingPayments", { count: 3 }) // "3 outgoing payments"
+ *
+ * No external dependency is used; the whole system is ~150 lines.
  */
 
 import en from "@/locales/en.json";
@@ -43,8 +58,30 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   he: "עברית",
 };
 
-/** Values substituted into `{placeholder}` tokens. */
+/** Values substituted into `{placeholder}` tokens; `count` is matched against plural categories. */
 export type TranslationValues = Record<string, string | number>;
+
+/**
+ * CLDR plural categories as reported by `Intl.PluralRules#select`.
+ *
+ * Catalogs only have to define `other` (the required fallback); every other
+ * category is optional, so a language can add `zero` / `two` / `few` / `many`
+ * later without a code change.
+ */
+export type PluralCategory = "zero" | "one" | "two" | "few" | "many" | "other";
+
+/** Every plural category a catalog key may define, in CLDR order. */
+export const PLURAL_CATEGORIES: readonly PluralCategory[] = [
+  "zero",
+  "one",
+  "two",
+  "few",
+  "many",
+  "other",
+];
+
+/** `other` is the only plural form every catalog must define. */
+export const DEFAULT_PLURAL_CATEGORY: PluralCategory = "other";
 
 /** A translator bound to a locale. */
 export type Translate = (key: string, values?: TranslationValues) => string;
@@ -86,33 +123,106 @@ export function lookupMessage(
   return typeof node === "string" ? node : undefined;
 }
 
-/** Replace `{token}` placeholders; unknown tokens are left untouched. */
+/** Replace `{token}` (or `{{token}}`) placeholders; unknown tokens are left untouched. */
 export function interpolate(
   template: string,
   values?: TranslationValues
 ): string {
   if (!values) return template;
 
-  return template.replace(/\{(\w+)\}/g, (match, name: string) =>
-    Object.prototype.hasOwnProperty.call(values, name)
-      ? String(values[name])
-      : match
+  return template.replace(
+    /\{\{?(\w+)\}\}?/g,
+    (match, name: string) =>
+      Object.prototype.hasOwnProperty.call(values, name)
+        ? String(values[name])
+        : match
   );
 }
 
+/** Cache of `Intl.PluralRules` instances, keyed by locale. */
+const PLURAL_RULES = new Map<string, Intl.PluralRules>();
+
+function pluralRules(locale: Locale): Intl.PluralRules | null {
+  if (typeof Intl === "undefined" || typeof Intl.PluralRules !== "function") {
+    return null;
+  }
+
+  const cached = PLURAL_RULES.get(locale);
+  if (cached) return cached;
+
+  try {
+    const rules = new Intl.PluralRules(locale);
+    PLURAL_RULES.set(locale, rules);
+    return rules;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Translate `key` for `locale`.
+ * Pick the CLDR plural category for `count` in `locale`.
  *
- * Fallback order: active locale → English → the raw key.
+ * Never throws: environments without `Intl.PluralRules` (or with an unknown
+ * locale tag) fall back to the English one/other rule.
+ */
+export function selectPluralCategory(
+  locale: Locale,
+  count: number
+): PluralCategory {
+  const rules = pluralRules(locale);
+
+  if (!rules) return count === 1 ? "one" : DEFAULT_PLURAL_CATEGORY;
+
+  return rules.select(count) as PluralCategory;
+}
+
+/**
+ * Resolve `key` against one catalog, trying the count's plural form first.
+ *
+ * @param tree    Catalog to search.
+ * @param key     Dot-path key, e.g. `dashboard.outgoingPayments`.
+ * @param count   Count driving plural selection, if any.
+ * @param locale  Locale used for `Intl.PluralRules`.
+ */
+function resolveFromTree(
+  tree: MessageTree,
+  key: string,
+  count: number | undefined,
+  locale: Locale
+): string | undefined {
+  if (count !== undefined) {
+    const category = selectPluralCategory(locale, count);
+
+    for (const pluralKey of [`${key}.${category}`, `${key}.${DEFAULT_PLURAL_CATEGORY}`]) {
+      const form = lookupMessage(tree, pluralKey);
+      if (form !== undefined) return form;
+    }
+  }
+
+  return lookupMessage(tree, key);
+}
+
+/**
+ * Translate `key` for `locale`, interpolating `values`.
+ *
+ * When `values.count` is a number the catalog is asked for the CLDR plural
+ * form of that count (`key.one`, `key.few`, `key.other`, …) before falling back
+ * to a plain string at `key`.
+ *
+ * Fallback order per locale: plural form for the count → `other` → the plain
+ * `key`; then the same again in English, then the raw key itself.
  */
 export function translate(
   locale: Locale,
   key: string,
   values?: TranslationValues
 ): string {
+  const rawCount = values?.count;
+  const count = typeof rawCount === "number" ? rawCount : undefined;
+
   const template =
-    lookupMessage(MESSAGES[locale], key) ??
-    lookupMessage(MESSAGES[DEFAULT_LOCALE], key) ??
+    resolveFromTree(MESSAGES[locale], key, count, locale) ??
+    resolveFromTree(MESSAGES[DEFAULT_LOCALE], key, count, DEFAULT_LOCALE) ??
     key;
 
   return interpolate(template, values);

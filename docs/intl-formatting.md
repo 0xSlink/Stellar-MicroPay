@@ -124,6 +124,13 @@ pluralize(2, { one: "# элемент", few: "# элемента", other: "# э�
 
 Note that `zero` is matched explicitly when `count === 0`, regardless of locale.
 
+> **Catalog copy vs. this helper.** User-facing copy that lives in
+> `frontend/locales/*.json` should use the catalog plural-group convention
+> (`key.one` / `key.other`, selected by `t(key, { count })`) instead of calling
+> `pluralize()` with hand-written strings — that keeps the text translatable.
+> `pluralize()` stays for counts that are not catalog copy. See
+> [`docs/i18n.md`](./i18n.md#plurals-and-counts).
+
 ## Accessibility
 
 - `formatForScreenReader(amount, asset?)` → `"1234 point 5678 XLM"`. Use it as

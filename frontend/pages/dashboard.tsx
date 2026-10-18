@@ -1895,26 +1895,21 @@ function PaymentStatsWidget({
   return (
     <section className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
       <StatsCard
-        label="Total Sent"
+        label={t("dashboard.totalSent")}
         value={formatStatsXLM(stats.totalSentXLM, t("dashboard.suffixSent"))}
-        helper={`${stats.sentCount} outgoing payment${stats.sentCount === 1 ? "" : "s"}`}
+        helper={t("dashboard.outgoingPayments", { count: stats.sentCount })}
         delta={volumeDelta}
         deltaType={typeof volumeDelta === "number" ? (volumeDelta > 0 ? "positive" : volumeDelta < 0 ? "negative" : "neutral") : undefined}
       />
       <StatsCard
         label={t("dashboard.totalReceived")}
         value={formatStatsXLM(stats.totalReceivedXLM, t("dashboard.suffixReceived"))}
-        helper={t(
-          stats.receivedCount === 1
-            ? "dashboard.incomingPayments"
-            : "dashboard.incomingPaymentsPlural",
-          { count: stats.receivedCount }
-        )}
+        helper={t("dashboard.incomingPayments", { count: stats.receivedCount })}
       />
       <StatsCard
         label={t("dashboard.transactions")}
         value={formatNumber(stats.totalTransactions, "XLM", { maximumFractionDigits: 0 })}
-        helper="Across sent and received activity"
+        helper={t("dashboard.acrossActivity")}
         delta={countDelta}
         deltaType={typeof countDelta === "number" ? (countDelta > 0 ? "positive" : countDelta < 0 ? "negative" : "neutral") : undefined}
       />

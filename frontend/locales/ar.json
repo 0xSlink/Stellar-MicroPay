@@ -101,10 +101,14 @@
     "paymentSummary": "ملخص المدفوعات",
     "paymentStatsLoading": "جارٍ تحميل إحصائيات المدفوعات",
     "loadingPaymentStats": "تحميل إحصائيات الدفع",
-    "outgoingPayments": "{count} دفعة صادرة",
-    "outgoingPaymentsPlural": "{count} دفعات صادرة",
-    "incomingPayments": "{count} دفعة واردة",
-    "incomingPaymentsPlural": "{count} دفعات واردة",
+    "outgoingPayments": {
+      "one": "{count} دفعة صادرة",
+      "other": "{count} دفعات صادرة"
+    },
+    "incomingPayments": {
+      "one": "{count} دفعة واردة",
+      "other": "{count} دفعات واردة"
+    },
     "acrossActivity": "عبر النشاط الصادر والوارد",
     "monthlySpending": "الإنفاق الشهري (XLM)",
     "suffixSent": "مرسل",
@@ -149,6 +153,41 @@
     "confirmationTimedOut": "انتهت مهلة تأكيد المعاملة.",
     "receiptSigningFailed": "فشل توقيع الإيصال",
     "receiptMintFailed": "فشل صك الإيصال"
+  },
+  "walletHealth": {
+    "healthy": "حسابك في حالة جيدة",
+    "warnings": {
+      "one": "{count} تحذير",
+      "other": "{count} تحذيرات"
+    },
+    "trustlines": {
+      "one": "{count} خط ثقة",
+      "other": "{count} خطوط ثقة"
+    },
+    "signers": {
+      "one": "{count} موقّع",
+      "other": "{count} موقّعين"
+    }
+  },
+  "transactions": {
+    "showingLoaded": {
+      "one": "عرض {shown} من {count} معاملة محمّلة",
+      "other": "عرض {shown} من {count} معاملات محمّلة"
+    }
+  },
+  "contacts": {
+    "count": {
+      "one": "{count} جهة اتصال",
+      "other": "{count} جهات اتصال"
+    },
+    "imported": {
+      "one": "تم استيراد {count} جهة اتصال",
+      "other": "تم استيراد {count} جهات اتصال"
+    },
+    "duplicatesSkipped": {
+      "one": "تم تخطي {count} عنصر مكرر",
+      "other": "تم تخطي {count} عناصر مكررة"
+    }
   },
   "pwaUpdate": {
     "available": "يتوفر إصدار جديد من التطبيق",
