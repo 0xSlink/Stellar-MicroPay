@@ -6,6 +6,9 @@ This document explains the PWA (Progressive Web App) implementation for Stellar 
 - ✅ Offline access to cached pages
 - ✅ Install banner on supported browsers
 - ✅ Standalone app experience
+- ⚠️ Web Push notifications — most pieces are implemented, but the
+  end-to-end path has gaps; see
+  [Push Notifications — Architecture & Current Status](#push-notifications--architecture--current-status-1478)
 
 ## Files Created/Modified
 
@@ -223,6 +226,135 @@ Same-origin static assets (`self.location.hostname`, `localhost`,
 `127.0.0.1`) remain runtime-cached network-first — they are immutable app
 shell content, version-bumped via `CACHE_VERSION` on deploy.
 
+## Push Notifications — Architecture & Current Status (#1478)
+
+The project advertises PWA push notifications, and most of the pieces exist —
+but they do not yet form a working end-to-end path. This section states
+precisely what is implemented, where, and what is still aspirational.
+
+### Status at a glance
+
+| Piece | Status | Where |
+|---|---|---|
+| Service worker `push` + `notificationclick` handlers | ✅ Implemented (#1143) | `frontend/public/sw.js` |
+| Browser subscribe flow (permission → `PushManager.subscribe()` → POST subscription) | ✅ Implemented | `frontend/pages/dashboard.tsx` → `subscribeToPush()` / "Enable payment notifications" toggle |
+| HTTP endpoints `POST /api/push/subscribe`, `/api/push/unsubscribe`, `/api/push/payment-event` | ⚠️ Written but **not mounted** — see [Known gaps](#known-gaps--follow-up-issues) | `backend/src/routes/push.js`, `backend/src/controllers/pushController.js` (required in `backend/src/server.js` but never `app.use`d) |
+| Subscription registry + VAPID sender | ✅ Implemented (in-memory only) | `backend/src/services/pushService.js` |
+| Payment watcher → push fan-out | ✅ Implemented | `backend/src/services/pushService.js` → `ensureWatcher()` (Horizon SSE) |
+| VAPID configuration | ✅ Documented | `ENV.md` → "Web Push Notifications (PWA)", `backend/.env.example`, `frontend/.env.example` |
+| Soroban contract events → Web Push | ❌ Not implemented | `backend/src/services/eventStreamService.js` feeds the SSE dashboard feed only |
+
+### What happens today, end to end
+
+1. The user clicks **Enable payment notifications** on the dashboard
+   (`frontend/pages/dashboard.tsx` → `subscribeToPush()`):
+   `/sw.js` is (re-)registered, `Notification.requestPermission()` runs inside
+   the user gesture, and — if `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is set —
+   `registration.pushManager.subscribe({ userVisibleOnly: true,
+   applicationServerKey })` creates a `PushSubscription`.
+2. The subscription JSON plus the user's Stellar `publicKey` are POSTed to
+   `${NEXT_PUBLIC_API_URL}/api/push/subscribe`. The failure is non-fatal: on a
+   fetch error the toggle still succeeds and only in-app (same-session)
+   notifications work.
+3. `pushService.saveSubscription()` stores the subscription **in memory** and
+   starts a Horizon payment stream (`cursor: "now"`) for that account.
+4. When a payment arrives (`op.type === "payment" && op.to === publicKey`),
+   `notifyAccount()` builds a JSON payload `{ title, body, url: "/dashboard" }`
+   and calls `webpush.sendNotification()` for each subscription (pruning
+   404/410 "gone" endpoints).
+5. On the device, the service worker's `push` handler shows the notification
+   (icon `/icon-192.png`); `notificationclick` focuses an open dashboard
+   window, or navigates an open client / opens a new window to
+   `notification.data.url` (default `/dashboard`).
+
+**Important:** step 2 currently fails in the stock backend: `server.js`
+requires `./routes/push` but never mounts it, so `/api/push/*` returns 404 and
+real cross-device pushes cannot be delivered until the routes are mounted
+(see [Known gaps](#known-gaps--follow-up-issues)). The subscribe toggle is
+designed to degrade gracefully, so users see no breakage — just no server
+pushes.
+
+### Which events trigger a push
+
+- **Implemented:** incoming Horizon **payment operations** to a subscribed
+  account (XLM and credit assets), detected by the per-account Horizon stream
+  in `pushService.ensureWatcher()`.
+- **Not implemented:** Soroban **contract events** (`tip`, `receipt`,
+  `open`, `claim`, …). `backend/src/services/eventStreamService.js` polls
+  `getEvents` and normalises them for the SSE dashboard feed
+  (`backend/src/routes/events.js`), but nothing forwards them to Web Push.
+
+### How subscriptions are stored
+
+In memory only — `Map<publicKey, PushSubscription[]>` in
+`backend/src/services/pushService.js`. Consequences (all currently accepted
+trade-offs, tracked as follow-ups):
+
+- A backend restart wipes every subscription; users must re-toggle.
+- Multiple backend instances don't share state.
+- Subscriptions are keyed by Stellar public key with endpoint-level dedupe;
+  the last removal for an account also stops its Horizon watcher.
+- `isPushConfigured()` is false without both VAPID keys and the `web-push`
+  package, in which case sending is a silent no-op (subscribe still "works").
+
+### Configuration
+
+See `ENV.md` → "Web Push Notifications (PWA)" for the full reference:
+backend `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_CONTACT`, frontend
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` (must match the backend public key) and
+`NEXT_PUBLIC_API_URL`. Generate a keypair with
+`npx web-push generate-vapid-keys`.
+
+### Known gaps → follow-up issues
+
+Each item below is a standalone follow-up issue (file with the quoted
+title; the link points at the exact code):
+
+1. **"Mount the /api/push routes in backend/src/server.js"** —
+   `backend/src/server.js` requires `./routes/push` but never attaches it, so
+   every `/api/push/*` call 404s and no subscription ever reaches
+   `pushService` in the stock deployment.
+2. **"Persist Web Push subscriptions instead of an in-memory Map"** —
+   `backend/src/services/pushService.js` line `const subscriptions = new Map()`;
+   restarts silently orphan every device.
+3. **"Authenticate /api/push/subscribe"** — any rate-limited caller can
+   attach a subscription to any Stellar public key; tie it to the existing
+   SEP-10 auth (`backend/src/routes/auth.js`).
+4. **"Forward Soroban contract events (tip/receipt) to Web Push"** —
+   `eventStreamService` already sees them; fan out via
+   `pushService.notifyAccount()`.
+5. **"Bound the number of Horizon payment watchers"** — one SSE stream per
+   subscribed account is unbounded in a long-lived process.
+
+### Local testing recipe
+
+1. Generate keys: `npx web-push generate-vapid-keys`. Put the public key in
+   `frontend/.env.local` as `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, and both keys in
+   `backend/.env` as `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`.
+2. **Until follow-up #1 lands**, mount the routes locally: add
+   `app.use("/api/push", pushRoutes);` next to the other mounts in
+   `backend/src/server.js` (this one line is the fix).
+3. Start both sides: `cd backend && npm run dev` and
+   `cd frontend && npm run dev` (localhost counts as a secure context, so no
+   HTTPS cert is needed).
+4. Open `http://localhost:3000/dashboard` → **Enable payment notifications** →
+   allow notifications. The confirmation notification should appear.
+5. Fire a synthetic push (substitute your own Stellar public key):
+
+   ```bash
+   curl -X POST http://localhost:4000/api/push/payment-event \
+     -H "Content-Type: application/json" \
+     -d '{"publicKey":"G...","title":"Test push","body":"It works"}'
+   ```
+
+   The device receives a real Web Push (not `showNotification()`-from-page).
+   (`Test notification` on the dashboard validates only the local
+   `showNotification` path, not the network hop.)
+6. Real end-to-end: fund a second testnet account with Friendbot and send XLM
+   to the subscribed account; the Horizon watcher fires the push.
+7. iOS/iPadOS: requires **iOS 16.4+** and the app added to the Home Screen
+   (installed PWA); check Settings → Safari → Notifications allows prompts.
+
 ## Update Prompt (Skip Waiting) (#1475)
 
 `CACHE_VERSION` names the caches (`stellar-micropay-precache-vX` /
@@ -416,7 +548,7 @@ icons) and the screenshots entries; the **Application Status** section reports
 
 Consider adding:
 - Background sync for offline transactions
-- Push notifications
+- Durable (database-backed) push subscriptions — see [Push Notifications → Known gaps](#known-gaps--follow-up-issues)
 - More granular caching strategies
 - Share target API
 - Periodic background sync

@@ -121,3 +121,36 @@ Environment validation failed:
 - Rotate secrets periodically
 - In production clusters, use a secrets manager (HashiCorp Vault, AWS Secrets Manager, Kubernetes Secrets, etc.)
 - The backend only reads secrets at startup; changing secret files requires a restart
+
+## Web Push Notifications (PWA)
+
+The backend can send Web Push notifications for incoming payments (see
+`docs/pwa.md` → "Push Notifications" for the full architecture). The
+following variables configure it:
+
+### VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY
+
+- **Purpose:** VAPID keypair identifying this push server to the browser's push service
+- **Generation:** `npx web-push generate-vapid-keys` (returns a `publicKey` / `privateKey` pair)
+- **Plain variables:** `export VAPID_PUBLIC_KEY="..."` / `export VAPID_PRIVATE_KEY="..."`
+- **Notes:** The public key must match `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in the
+  frontend build (the browser refuses a `PushManager.subscribe()` call whose
+  `applicationServerKey` doesn't match the sender). Without both keys the
+  backend logs no error — sending becomes a no-op
+  (`backend/src/services/pushService.js` → `isPushConfigured()`).
+
+### VAPID_CONTACT
+
+- **Purpose:** Contact URI sent to the push service in VAPID `mailto:`/`https:` claims
+- **Default:** `mailto:admin@stellarmicropay.com`
+- **Plain variable:** `export VAPID_CONTACT="mailto:you@example.com"`
+
+### Frontend counterparts (frontend/.env.local)
+
+- **`NEXT_PUBLIC_VAPID_PUBLIC_KEY`** — must equal `VAPID_PUBLIC_KEY`; used by
+  `PushManager.subscribe()` on the Dashboard's "Enable payment notifications"
+  toggle. When unset, the toggle still enables in-app notifications but never
+  registers a server subscription.
+- **`NEXT_PUBLIC_API_URL`** — base URL the browser uses to POST the
+  subscription to `/api/push/subscribe` (defaults to the same origin).
+- Both are documented with comments in `frontend/.env.example`.
